@@ -5,6 +5,7 @@ import CategoryPage from '../pages/CategoryPage'
 import ProductDetailPage from '../pages/ProductDetailPage'
 import CartPage from '../pages/CartPage'
 import CheckoutPage from '../pages/CheckoutPage'
+import OrderCompletePage from '../pages/OrderCompletePage'
 
 export const router = createBrowserRouter([
   {
@@ -16,6 +17,7 @@ export const router = createBrowserRouter([
       { path: 'product/:id', element: <ProductDetailPage /> },
       { path: 'cart', element: <CartPage /> },
       { path: 'checkout', element: <CheckoutPage /> },
+      { path: 'order-complete', element: <OrderCompletePage /> },
     ],
   },
 ])

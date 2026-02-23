@@ -1,20 +1,49 @@
 import { useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import Container from '../components/ui/Container'
 import ProductImageViewer, { type ProductImage } from '../components/product/ProductImageViewer'
 import Badge from '../components/ui/Badge'
 import Price from '../components/ui/Price'
 import Button from '../components/ui/Button'
+import ProductDetailArea from '../components/product/ProductDetailArea'
 import { useStore } from '../store/useStore'
 import { products } from '../mock/products'
 
 const SIZES = ['XS', 'S', 'M', 'L', 'XL']
 
+const COLORS: { name: string; hex: string }[] = [
+  { name: '블랙',     hex: '#111111' },
+  { name: '화이트',   hex: '#F5F5F5' },
+  { name: '베이지',   hex: '#D4B896' },
+  { name: '네이비',   hex: '#1B2A4A' },
+  { name: '버건디',   hex: '#6D1A2A' },
+]
+
 export default function ProductDetailPage() {
   const { id } = useParams()
   const product = products.find((p) => p.id === id)
   const { favorites, toggleFavorite, incrementCart } = useStore()
+  const navigate = useNavigate()
   const [selectedSize, setSelectedSize] = useState<string | null>(null)
+  const [selectedColor, setSelectedColor] = useState<string | null>(null)
+  const [validationMsg, setValidationMsg] = useState<string | null>(null)
+
+  const validate = () => {
+    if (!selectedColor && !selectedSize) {
+      setValidationMsg('색상과 사이즈를 선택해 주세요.')
+      return false
+    }
+    if (!selectedColor) {
+      setValidationMsg('색상을 선택해 주세요.')
+      return false
+    }
+    if (!selectedSize) {
+      setValidationMsg('사이즈를 선택해 주세요.')
+      return false
+    }
+    setValidationMsg(null)
+    return true
+  }
 
   if (!product) {
     return (
@@ -38,6 +67,7 @@ export default function ProductDetailPage() {
   ]
 
   return (
+    <div>
     <Container className="py-8 md:py-12">
       {/* Breadcrumb */}
       <nav className="mb-6 flex items-center gap-2 text-sm text-gray-500" aria-label="breadcrumb">
@@ -82,6 +112,34 @@ export default function ProductDetailPage() {
             />
           </div>
 
+          {/* Color selector */}
+          <div>
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-sm font-medium text-gray-700">
+                색상
+                {selectedColor && (
+                  <span className="ml-2 font-normal text-gray-400">{selectedColor}</span>
+                )}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2.5">
+              {COLORS.map((color) => (
+                <button
+                  key={color.name}
+                  onClick={() => { setSelectedColor(color.name); setValidationMsg(null) }}
+                  aria-label={color.name}
+                  title={color.name}
+                  className={`relative h-8 w-8 rounded-full transition-transform hover:scale-110 focus:outline-none ${
+                    selectedColor === color.name
+                      ? 'ring-2 ring-gray-900 ring-offset-2'
+                      : 'ring-1 ring-gray-200'
+                  }`}
+                  style={{ backgroundColor: color.hex }}
+                />
+              ))}
+            </div>
+          </div>
+
           {/* Size selector */}
           <div>
             <div className="mb-2 flex items-center justify-between">
@@ -94,7 +152,7 @@ export default function ProductDetailPage() {
               {SIZES.map((size) => (
                 <button
                   key={size}
-                  onClick={() => setSelectedSize(size)}
+                  onClick={() => { setSelectedSize(size); setValidationMsg(null) }}
                   className={`h-10 min-w-[44px] rounded border px-3 text-sm font-medium transition-colors ${
                     selectedSize === size
                       ? 'border-gray-900 bg-gray-900 text-white'
@@ -107,12 +165,24 @@ export default function ProductDetailPage() {
             </div>
           </div>
 
+          {/* Validation message */}
+          {validationMsg && (
+            <p className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm text-rose-600">
+              {validationMsg}
+            </p>
+          )}
+
           {/* Action buttons */}
           <div className="flex gap-2 pt-1">
-            <Button size="lg" variant="outline" className="flex-1" onClick={() => incrementCart()}>
+            <Button
+              size="lg"
+              variant="outline"
+              className="flex-1"
+              onClick={() => { if (validate()) incrementCart() }}
+            >
               장바구니 담기
             </Button>
-            <Button size="lg" className="flex-1">
+            <Button size="lg" className="flex-1" onClick={() => { if (validate()) navigate('/checkout') }}>
               바로 구매
             </Button>
             <button
@@ -156,5 +226,7 @@ export default function ProductDetailPage() {
         </div>
       </div>
     </Container>
+    <ProductDetailArea productId={product.id} />
+    </div>
   )
 }
