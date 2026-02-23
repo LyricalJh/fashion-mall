@@ -31,7 +31,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         <img
           src={product.imageUrl}
           alt={product.name}
-          className="aspect-[4/5] w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          className="aspect-[2/3] w-full object-cover transition-transform duration-300 group-hover:scale-105"
           loading="lazy"
         />
         {/* Badge */}

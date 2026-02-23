@@ -11,7 +11,7 @@
 |------|------|
 | 목적 | 패션 쇼핑몰 메인 페이지 프론트엔드 MVP |
 | 참조 사이트 | shinsegaev.com (레이아웃 패턴만 참고, 에셋/텍스트 복사 금지) |
-| 상태 | **MVP 완료** — 홈 페이지 완성, 나머지 페이지는 stub |
+| 상태 | **진행 중** — 홈·상품상세·장바구니 완성, Category·Checkout stub |
 | 실행 | `npm install` → `npm run dev` (node가 PATH에 없으면 아래 참고) |
 
 ### 개발 서버 실행 (Windows 환경 주의)
@@ -65,6 +65,8 @@ fashion-mall/
 │   │   │   ├── SectionBlock.tsx # 섹션 타이틀 + View All + ProductGrid
 │   │   │   ├── ProductGrid.tsx  # 반응형 그리드
 │   │   │   └── ProductCard.tsx  # 카드, 하트 토글, 뱃지, 호버 줌
+│   │   ├── product/
+│   │   │   └── ProductImageViewer.tsx # 썸네일 목록 + 메인 이미지 + 줌 모달
 │   │   └── ui/
 │   │       ├── Button.tsx
 │   │       ├── IconButton.tsx
@@ -74,7 +76,7 @@ fashion-mall/
 │   └── pages/
 │       ├── HomePage.tsx         # ✅ 완성
 │       ├── CategoryPage.tsx     # 🔲 stub
-│       ├── ProductDetailPage.tsx# 🔲 stub
+│       ├── ProductDetailPage.tsx# ✅ 완성
 │       ├── CartPage.tsx         # 🔲 stub
 │       └── CheckoutPage.tsx     # 🔲 stub
 ├── index.html                   # SEO 메타 태그 추가 필요 → 아래 참고
@@ -91,7 +93,7 @@ fashion-mall/
 |------|------|------|
 | `/` | HomePage | ✅ 완성 |
 | `/category/:slug` | CategoryPage | 🔲 stub |
-| `/product/:id` | ProductDetailPage | 🔲 stub |
+| `/product/:id` | ProductDetailPage | ✅ 완성 |
 | `/cart` | CartPage | 🔲 stub |
 | `/checkout` | CheckoutPage | 🔲 stub |
 
@@ -238,7 +240,7 @@ npm install react-helmet-async
 - [ ] **SEO**: robots.txt, sitemap.xml 생성
 - [ ] **SEO**: JSON-LD 구조화 데이터
 - [ ] **페이지**: CategoryPage UI 구현
-- [ ] **페이지**: ProductDetailPage UI 구현
+- [x] **페이지**: ProductDetailPage UI 구현
 - [ ] **페이지**: CartPage UI 구현
 - [ ] **페이지**: CheckoutPage UI 구현
 - [ ] **기능**: 검색 기능 연결
@@ -255,3 +257,79 @@ npm install react-helmet-async
 - **npm**: v11.7.0
 - **Shell**: Git Bash (bash) — `node`가 PATH에 자동 등록되지 않음
 - **IDE**: VS Code (파일 열기 이벤트로 확인)
+
+
+## TODO
+# Cart Page UI — Implementation Prompt (React + Tailwind)
+
+## Context / Reference
+Implement a **Cart (장바구니)** page UI inspired by the provided HTML snippet.  
+Use the snippet as **layout reference only**. Do **not** copy exact class names, assets, icons, or pixel-perfect styling.
+
+**Bundle complexity (로켓배송/판매자배송 등)** is **NOT required**.  
+This MVP cart should use a **single list** of cart items only.
+
+Target stack:
+- React + TypeScript
+- Tailwind CSS
+- React Router
+- Zustand (optional; mock/local state is fine for MVP)
+
+---
+
+## Goal
+Build a responsive cart page with:
+
+1) Top title area: **Back button + “장바구니(n)”**
+2) Desktop step indicator: **01 옵션선택 → 02 장바구니(현재) → 03 주문/결제 → 04 주문완료**
+3) Main content area:
+    - Left: cart items list (selectable, editable quantity, delete)
+    - Right: sticky order summary (총 상품 가격, 배송비, 최종 결제금액, 구매하기 버튼)
+4) Mobile behavior:
+    - Order summary becomes a **fixed bottom bar** with final price + “구매하기”
+    - Items list remains scrollable above
+
+---
+
+## Page Layout Spec
+
+### Desktop (>= lg)
+- Container centered with max width (e.g., 1200px)
+- Two columns:
+    - Left (flex-1): item list + selection controls
+    - Right (w ~ 300px): order summary sticky (top offset ~ 10px)
+
+### Mobile (< md)
+- Single column layout
+- Order summary becomes **bottom fixed bar**
+- Detailed breakdown (총 상품 가격/배송비) can be hidden or collapsible (optional)
+
+---
+
+## Components (Create these)
+- `CartPage`
+- `CartHeader` (back + title + step indicator)
+- `CartItemRow` (checkbox + image + name/options + price + qty + delete)
+- `CartSelectionBar` (전체 선택, 선택삭제, 품절/종료상품 삭제 - last one can be stub)
+- `OrderSummary` (desktop right sticky)
+- `MobileCheckoutBar` (mobile bottom fixed)
+- `QuantityStepper` (+ / - / input)
+
+---
+
+## Data Model (Mock First)
+```ts
+type CartItem = {
+  id: string;
+  brand?: string;
+  name: string;
+  optionText?: string;   // e.g., "옵션: 120g, 3개"
+  imageUrl: string;
+  price: number;         // discounted price
+  originalPrice?: number;
+  discountRate?: number; // 0~100
+  quantity: number;
+  selected: boolean;
+  deliveryText?: string; // e.g., "내일(화) 도착"
+  badges?: string[];     // optional simple text badges
+};

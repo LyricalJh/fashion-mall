@@ -36,7 +36,7 @@ export const products: Product[] = seeds.map((seed, i) => {
     price: hasDiscount ? Math.floor(price * (1 - (discountRate ?? 0) / 100)) : price,
     originalPrice: hasDiscount ? price : undefined,
     discountRate,
-    imageUrl: `https://picsum.photos/seed/${seed}/400/500`,
+    imageUrl: `https://picsum.photos/seed/${seed}/400/600`,
     badge: badges[i % badges.length],
   }
 })
