@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useStore } from '../../store/useStore'
+import { useAuthStore } from '../../store/authStore'
 import { categories } from '../../mock/categories'
 
 export default function MobileBottomNav() {
@@ -8,11 +9,25 @@ export default function MobileBottomNav() {
   const navigate = useNavigate()
   const [sheetOpen, setSheetOpen] = useState(false)
   const cartCount = useStore((s) => s.cartItems.reduce((sum, it) => sum + it.quantity, 0))
+  const isLoggedIn = useAuthStore((s) => s.isLoggedIn)
+
+  function handleMyPage() {
+    if (!isLoggedIn) {
+      navigate('/login', { state: { from: '/mypage' } })
+    } else {
+      navigate('/mypage')
+    }
+  }
 
   const pathname = location.pathname
 
-  // Hide on cart/checkout/order-complete pages
-  if (pathname === '/cart' || pathname === '/checkout' || pathname === '/order-complete') {
+  // Hide on cart/checkout/order-complete/product-detail pages
+  if (
+    pathname === '/cart' ||
+    pathname === '/checkout' ||
+    pathname === '/order-complete' ||
+    pathname.startsWith('/product/')
+  ) {
     return null
   }
 
@@ -94,8 +109,8 @@ export default function MobileBottomNav() {
         </Link>
 
         {/* 마이 */}
-        <Link
-          to="/mypage"
+        <button
+          onClick={handleMyPage}
           className={`flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-medium ${isMyPage ? activeClass : inactiveClass}`}
         >
           <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -103,7 +118,7 @@ export default function MobileBottomNav() {
             <circle cx="12" cy="7" r="4" />
           </svg>
           마이
-        </Link>
+        </button>
       </nav>
 
       {/* Category slide-up sheet */}

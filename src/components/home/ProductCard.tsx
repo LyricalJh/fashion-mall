@@ -1,6 +1,7 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import type { Product } from '../../mock/products'
 import { useStore } from '../../store/useStore'
+import { useAuthStore } from '../../store/authStore'
 import Badge from '../ui/Badge'
 import Price from '../ui/Price'
 
@@ -17,9 +18,20 @@ const badgeVariantMap: Record<string, 'hot' | 'new' | 'best' | 'sale'> = {
 
 export default function ProductCard({ product }: ProductCardProps) {
   const navigate = useNavigate()
+  const location = useLocation()
   const favorites = useStore((s) => s.favorites)
   const toggleFavorite = useStore((s) => s.toggleFavorite)
+  const isLoggedIn = useAuthStore((s) => s.isLoggedIn)
   const isFav = favorites.has(product.id)
+
+  function handleFavorite(e: React.MouseEvent) {
+    e.stopPropagation()
+    if (!isLoggedIn) {
+      navigate('/login', { state: { from: location.pathname } })
+      return
+    }
+    toggleFavorite(product.id)
+  }
 
   return (
     <div
@@ -42,8 +54,8 @@ export default function ProductCard({ product }: ProductCardProps) {
         )}
         {/* Heart */}
         <button
-          onClick={(e) => { e.stopPropagation(); toggleFavorite(product.id) }}
-          aria-label={isFav ? 'Remove from favorites' : 'Add to favorites'}
+          onClick={handleFavorite}
+          aria-label={isFav ? '찜 해제' : '찜하기'}
           className="absolute bottom-2 right-2 rounded-full bg-white/90 p-1.5 shadow transition hover:bg-white"
         >
           <svg

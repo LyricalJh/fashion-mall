@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import Container from '../components/ui/Container'
 import { useStore } from '../store/useStore'
 import type { CartItem } from '../types/cart'
@@ -94,12 +94,17 @@ function InputField({
 
 export default function CheckoutPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { cartItems, clearCart } = useStore()
 
-  // Use selected items; fall back to all items if nothing is selected
-  const orderItems = cartItems.filter((it) => it.selected).length > 0
-    ? cartItems.filter((it) => it.selected)
-    : cartItems
+  // 바로 구매로 진입한 경우: 해당 상품만 결제 (장바구니 미사용)
+  const directItem = (location.state as { directItem?: CartItem } | null)?.directItem
+
+  const orderItems: CartItem[] = directItem
+    ? [directItem]
+    : cartItems.filter((it) => it.selected).length > 0
+      ? cartItems.filter((it) => it.selected)
+      : cartItems
 
   // Form state
   const [form, setForm] = useState({
@@ -131,7 +136,8 @@ export default function CheckoutPage() {
     if (errs.length > 0) { setErrors(errs); return }
     setErrors([])
     const orderNo = `STYLE-${Date.now().toString().slice(-8)}`
-    clearCart()
+    // 바로 구매는 장바구니를 거치지 않았으므로 clearCart 하지 않음
+    if (!directItem) clearCart()
     navigate('/order-complete', { state: { orderNo } })
   }
 

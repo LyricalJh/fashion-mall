@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(tail:*)",
-      "Bash(cd /c/projects/fashion-mall && PATH=\"/c/Program Files/nodejs:$PATH\" \"/c/Program Files/nodejs/npm.cmd\" run build 2>&1)"
+      "Bash(cd /c/projects/fashion-mall && PATH=\"/c/Program Files/nodejs:$PATH\" \"/c/Program Files/nodejs/npm.cmd\" run build 2>&1)",
+      "Bash(npx tsc:)",
+      "Bash(npx tsc:*)"
     ]
   }
 }
