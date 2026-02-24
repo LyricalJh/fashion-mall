@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import Container from '../components/ui/Container'
 import ProductImageViewer, { type ProductImage } from '../components/product/ProductImageViewer'
@@ -22,11 +22,18 @@ const COLORS: { name: string; hex: string }[] = [
 export default function ProductDetailPage() {
   const { id } = useParams()
   const product = products.find((p) => p.id === id)
-  const { favorites, toggleFavorite, incrementCart } = useStore()
+  const { favorites, toggleFavorite, addToCart } = useStore()
   const navigate = useNavigate()
   const [selectedSize, setSelectedSize] = useState<string | null>(null)
   const [selectedColor, setSelectedColor] = useState<string | null>(null)
   const [validationMsg, setValidationMsg] = useState<string | null>(null)
+  const [toastVisible, setToastVisible] = useState(false)
+
+  useEffect(() => {
+    if (!toastVisible) return
+    const timer = setTimeout(() => setToastVisible(false), 3000)
+    return () => clearTimeout(timer)
+  }, [toastVisible])
 
   const validate = () => {
     if (!selectedColor && !selectedSize) {
@@ -68,6 +75,39 @@ export default function ProductDetailPage() {
 
   return (
     <div>
+    {/* Cart Toast */}
+    <div
+      role="status"
+      aria-live="polite"
+      className={`fixed bottom-6 left-1/2 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 transition-all duration-300 ${
+        toastVisible ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-4 opacity-0'
+      }`}
+    >
+      <div className="flex items-center gap-3 rounded-xl bg-gray-900 px-4 py-3.5 shadow-xl">
+        {/* Check icon */}
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500">
+          <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        </span>
+        <p className="flex-1 text-sm font-medium text-white">장바구니에 담겼습니다</p>
+        <button
+          onClick={() => navigate('/cart')}
+          className="shrink-0 rounded-lg bg-white px-3 py-1.5 text-xs font-bold text-gray-900 transition-colors hover:bg-gray-100"
+        >
+          장바구니 바로 가기
+        </button>
+        <button
+          onClick={() => setToastVisible(false)}
+          className="shrink-0 text-gray-400 hover:text-white transition-colors"
+          aria-label="닫기"
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    </div>
     <Container className="py-8 md:py-12">
       {/* Breadcrumb */}
       <nav className="mb-6 flex items-center gap-2 text-sm text-gray-500" aria-label="breadcrumb">
@@ -178,11 +218,45 @@ export default function ProductDetailPage() {
               size="lg"
               variant="outline"
               className="flex-1"
-              onClick={() => { if (validate()) incrementCart() }}
+              onClick={() => {
+                if (!validate()) return
+                addToCart({
+                  id: `${product.id}-${selectedColor}-${selectedSize}`,
+                  brand: product.brand,
+                  name: product.name,
+                  optionText: `옵션: ${selectedSize} / ${selectedColor}`,
+                  imageUrl: product.imageUrl,
+                  price: product.price,
+                  originalPrice: product.originalPrice,
+                  discountRate: product.discountRate,
+                  quantity: 1,
+                  selected: true,
+                })
+                setToastVisible(true)
+              }}
             >
               장바구니 담기
             </Button>
-            <Button size="lg" className="flex-1" onClick={() => { if (validate()) navigate('/checkout') }}>
+            <Button
+              size="lg"
+              className="flex-1"
+              onClick={() => {
+                if (!validate()) return
+                addToCart({
+                  id: `${product.id}-${selectedColor}-${selectedSize}`,
+                  brand: product.brand,
+                  name: product.name,
+                  optionText: `옵션: ${selectedSize} / ${selectedColor}`,
+                  imageUrl: product.imageUrl,
+                  price: product.price,
+                  originalPrice: product.originalPrice,
+                  discountRate: product.discountRate,
+                  quantity: 1,
+                  selected: true,
+                })
+                navigate('/checkout')
+              }}
+            >
               바로 구매
             </Button>
             <button

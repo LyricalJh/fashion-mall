@@ -1,23 +1,7 @@
-import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import Container from '../components/ui/Container'
-import { products } from '../mock/products'
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-type CartItem = {
-  id: string
-  brand?: string
-  name: string
-  optionText?: string
-  imageUrl: string
-  price: number
-  originalPrice?: number
-  discountRate?: number
-  quantity: number
-  selected: boolean
-  deliveryText?: string
-}
+import { useStore } from '../store/useStore'
+import type { CartItem } from '../types/cart'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -26,23 +10,6 @@ const SHIPPING_FEE = 3_000
 
 const STEPS = ['01 옵션선택', '02 장바구니', '03 주문/결제', '04 주문완료'] as const
 const ACTIVE_STEP = 1 // 장바구니
-
-const OPTION_LABELS = ['옵션: S / Black', '옵션: M / White', '옵션: L / Navy', '옵션: XS / Beige']
-const DELIVERY_LABELS = ['내일(목) 도착', '모레(금) 도착', '내일(목) 도착', '모레(금) 도착']
-
-const INITIAL_CART: CartItem[] = products.slice(0, 4).map((p, i) => ({
-  id: p.id,
-  brand: p.brand,
-  name: p.name,
-  optionText: OPTION_LABELS[i],
-  imageUrl: p.imageUrl,
-  price: p.price,
-  originalPrice: p.originalPrice,
-  discountRate: p.discountRate,
-  quantity: 1,
-  selected: true,
-  deliveryText: DELIVERY_LABELS[i],
-}))
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -177,7 +144,7 @@ function CartItemRow({
       />
 
       {/* Thumbnail */}
-      <Link to={`/product/${item.id}`} className="shrink-0">
+      <Link to={`/product/${item.id.split('-')[0]}`} className="shrink-0">
         <img
           src={item.imageUrl}
           alt={item.name}
@@ -354,37 +321,23 @@ function MobileCheckoutBar({ finalPrice }: { finalPrice: number }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function CartPage() {
-  const [items, setItems] = useState<CartItem[]>(INITIAL_CART)
+  const { cartItems, toggleSelect, toggleSelectAll, deleteSelected, removeFromCart, updateQuantity } =
+    useStore()
 
-  const allSelected = items.length > 0 && items.every((it) => it.selected)
-  const selectedItems = items.filter((it) => it.selected)
+  const allSelected = cartItems.length > 0 && cartItems.every((it) => it.selected)
+  const selectedItems = cartItems.filter((it) => it.selected)
   const totalPrice = selectedItems.reduce((sum, it) => sum + it.price * it.quantity, 0)
   const shippingFee =
     totalPrice === 0 ? 0 : totalPrice >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE
   const finalPrice = totalPrice + shippingFee
 
-  const toggleAll = () =>
-    setItems((prev) => prev.map((it) => ({ ...it, selected: !allSelected })))
-
-  const toggleItem = (id: string) =>
-    setItems((prev) =>
-      prev.map((it) => (it.id === id ? { ...it, selected: !it.selected } : it))
-    )
-
-  const deleteSelected = () => setItems((prev) => prev.filter((it) => !it.selected))
-
-  const deleteItem = (id: string) => setItems((prev) => prev.filter((it) => it.id !== id))
-
-  const setQuantity = (id: string, quantity: number) =>
-    setItems((prev) => prev.map((it) => (it.id === id ? { ...it, quantity } : it)))
-
   return (
     <>
       {/* pb-24 on mobile to clear the fixed bottom bar */}
       <Container className="py-6 pb-28 md:pb-12">
-        <CartHeader count={items.length} />
+        <CartHeader count={cartItems.length} />
 
-        {items.length === 0 ? (
+        {cartItems.length === 0 ? (
           /* Empty state */
           <div className="py-24 text-center">
             <svg
@@ -413,17 +366,17 @@ export default function CartPage() {
               <CartSelectionBar
                 allSelected={allSelected}
                 selectedCount={selectedItems.length}
-                onToggleAll={toggleAll}
+                onToggleAll={() => toggleSelectAll(!allSelected)}
                 onDeleteSelected={deleteSelected}
               />
               <div>
-                {items.map((item) => (
+                {cartItems.map((item) => (
                   <CartItemRow
                     key={item.id}
                     item={item}
-                    onToggle={() => toggleItem(item.id)}
-                    onQuantity={(v) => setQuantity(item.id, v)}
-                    onDelete={() => deleteItem(item.id)}
+                    onToggle={() => toggleSelect(item.id)}
+                    onQuantity={(v) => updateQuantity(item.id, v)}
+                    onDelete={() => removeFromCart(item.id)}
                   />
                 ))}
               </div>
@@ -442,7 +395,7 @@ export default function CartPage() {
       </Container>
 
       {/* Mobile bottom checkout bar */}
-      {items.length > 0 && <MobileCheckoutBar finalPrice={finalPrice} />}
+      {cartItems.length > 0 && <MobileCheckoutBar finalPrice={finalPrice} />}
     </>
   )
 }

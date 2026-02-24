@@ -11,7 +11,7 @@
 |------|------|
 | 목적 | 패션 쇼핑몰 메인 페이지 프론트엔드 MVP |
 | 참조 사이트 | shinsegaev.com (레이아웃 패턴만 참고, 에셋/텍스트 복사 금지) |
-| 상태 | **진행 중** — 홈·상품상세·장바구니 완성, Category·Checkout stub |
+| 상태 | **진행 중** — 홈·상품상세·장바구니 완성, Category·Checkout stub, 모바일 하단 내비게이션 완성 |
 | 실행 | `npm install` → `npm run dev` (node가 PATH에 없으면 아래 참고) |
 
 ### 개발 서버 실행 (Windows 환경 주의)
@@ -56,10 +56,11 @@ fashion-mall/
 │   │   └── sections.ts          # 7개 홈 섹션
 │   ├── components/
 │   │   ├── layout/
-│   │   │   ├── AppLayout.tsx    # Header + CatalogNav + Outlet + Footer
-│   │   │   ├── Header.tsx       # sticky, 검색바, 아이콘, 카트 뱃지
-│   │   │   ├── CatalogNav.tsx   # desktop 가로 메뉴 / mobile 드로어
-│   │   │   └── Footer.tsx
+│   │   │   ├── AppLayout.tsx        # Header + CatalogNav + Outlet + Footer(desktop) + MobileBottomNav
+│   │   │   ├── Header.tsx           # sticky; 모바일: 로고만(h-12) / 데스크탑: 검색바+아이콘(h-16)
+│   │   │   ├── CatalogNav.tsx       # desktop 가로 메뉴만 (mobile 햄버거 제거됨)
+│   │   │   ├── MobileBottomNav.tsx  # 모바일 전용 5-탭 하단 바 + 카테고리 슬라이드업 시트
+│   │   │   └── Footer.tsx           # 데스크탑에서만 표시 (모바일 hidden)
 │   │   ├── home/
 │   │   │   ├── HeroCarousel.tsx # 3-패널 캐러셀 (desktop 3 / tablet 2 / mobile 1), 자동재생, dots
 │   │   │   ├── SectionBlock.tsx # 섹션 타이틀 + View All + ProductGrid
@@ -77,8 +78,17 @@ fashion-mall/
 │       ├── HomePage.tsx         # ✅ 완성
 │       ├── CategoryPage.tsx     # 🔲 stub
 │       ├── ProductDetailPage.tsx# ✅ 완성
-│       ├── CartPage.tsx         # 🔲 stub
-│       └── CheckoutPage.tsx     # 🔲 stub
+│       ├── CartPage.tsx         # ✅ 완성
+│       ├── CheckoutPage.tsx     # 🔲 stub
+│       └── MyPage/
+│           ├── MyPageLayout.tsx     # 2-column(desktop) / single-column(mobile)
+│           ├── MyPageSidebar.tsx    # NavLink 그룹 메뉴 (desktop nav + mobile card list)
+│           ├── OrderListPage.tsx    # ✅ stub
+│           ├── CancelReturnPage.tsx # ✅ stub
+│           ├── CouponPage.tsx       # ✅ stub
+│           ├── InquiryPage.tsx      # ✅ stub
+│           ├── AddressPage.tsx      # ✅ stub
+│           └── WithdrawPage.tsx     # ✅ stub
 ├── index.html                   # SEO 메타 태그 추가 필요 → 아래 참고
 ├── vite.config.ts
 ├── context.md                   # ← 이 파일
@@ -94,20 +104,32 @@ fashion-mall/
 | `/` | HomePage | ✅ 완성 |
 | `/category/:slug` | CategoryPage | 🔲 stub |
 | `/product/:id` | ProductDetailPage | ✅ 완성 |
-| `/cart` | CartPage | 🔲 stub |
+| `/cart` | CartPage | ✅ 완성 |
 | `/checkout` | CheckoutPage | 🔲 stub |
+| `/mypage` | → redirect to `/mypage/orders` | — |
+| `/mypage/orders` | OrderListPage | ✅ stub |
+| `/mypage/returns` | CancelReturnPage | ✅ stub |
+| `/mypage/coupon` | CouponPage | ✅ stub |
+| `/mypage/inquiry` | InquiryPage | ✅ stub |
+| `/mypage/address` | AddressPage | ✅ stub |
+| `/mypage/withdraw` | WithdrawPage | ✅ stub |
 
 ---
 
 ## 상태 관리 (Zustand — `src/store/useStore.ts`)
 
 ```ts
-favorites: Set<string>        // 찜한 상품 ID 집합
-cartCount: number             // 카트 수량 (mock, 초기값 3)
-toggleFavorite(id: string)    // 찜 토글
-incrementCart()               // 카트 +1
-decrementCart()               // 카트 -1 (최소 0)
+favorites: Set<string>                            // 찜한 상품 ID 집합
+cartItems: CartItem[]                             // 장바구니 아이템 배열
+toggleFavorite(id)                                // 찜 토글
+addToCart(item) / removeFromCart(id)              // 카트 추가/제거
+updateQuantity(id, quantity)                      // 수량 변경
+toggleSelect(id) / toggleSelectAll(selected)      // 선택 상태 토글
+deleteSelected() / clearCart()                    // 선택 삭제 / 전체 삭제
 ```
+
+- `localStorage` persist (`stylehub-cart` key)
+- 카트 배지 카운트: `cartItems.reduce((sum, it) => sum + it.quantity, 0)`
 
 ---
 
@@ -151,6 +173,34 @@ picsum.photos seed 방식 사용 (결정적, 백엔드 없이 일관된 이미�
 | Mobile | default | 2 |
 | Tablet | `md` (768px+) | 3~4 |
 | Desktop | `lg` (1024px+) / `xl` (1280px+) | 5~6 |
+
+---
+
+## 모바일 레이아웃 (< md / 768px)
+
+앱 스타일 하단 내비게이션 패턴 적용.
+
+| 영역 | 모바일 | 데스크탑 |
+|------|--------|---------|
+| Header | 로고만 (`h-12`) | 로고 + 검색바 + 아이콘 (`h-16`) |
+| CatalogNav | 숨김 (햄버거 제거) | 가로 카테고리 메뉴 |
+| 하단 탭 바 | `MobileBottomNav` 고정 표시 | 숨김 |
+| Footer | 숨김 | 표시 |
+| `<main>` | `pb-16` (탭 바 높이만큼 여백) | `pb-0` |
+
+### MobileBottomNav 탭 구성
+
+| 탭 | 경로 | active 조건 |
+|----|------|------------|
+| 홈 | `/` | `pathname === '/'` |
+| 카테고리 | — | 슬라이드업 시트 토글 / `pathname.startsWith('/category')` |
+| 찜 | — | 항상 비활성 (미구현) |
+| 장바구니 | `/cart` | `pathname === '/cart'` (배지 표시) |
+| 마이 | — | 항상 비활성 (미구현) |
+
+- `/cart`, `/checkout`, `/order-complete` 에서는 `MobileBottomNav` 자체를 `return null`
+- 카테고리 슬라이드업 시트: 9개 카테고리 3열 그리드, 클릭 시 해당 경로로 이동 + 시트 닫힘
+- active 색상: `rose-500`, inactive: `gray-400`
 
 ---
 
@@ -241,8 +291,13 @@ npm install react-helmet-async
 - [ ] **SEO**: JSON-LD 구조화 데이터
 - [ ] **페이지**: CategoryPage UI 구현
 - [x] **페이지**: ProductDetailPage UI 구현
-- [ ] **페이지**: CartPage UI 구현
+- [x] **페이지**: CartPage UI 구현
 - [ ] **페이지**: CheckoutPage UI 구현
+- [x] **페이지**: MyPage 기본 구조 구현 (Layout + Sidebar + 6개 stub)
+- [x] **모바일**: 하단 탭 내비게이션 (MobileBottomNav) 구현
+- [ ] **MyPage**: 주문목록 mock 데이터 연결
+- [ ] **MyPage**: 찜(favorites) 탭 페이지 연결
+- [ ] **MyPage**: 회원정보 수정 페이지 추가
 - [ ] **기능**: 검색 기능 연결
 - [ ] **기능**: React Router lazy 코드 스플리팅
 - [ ] **기능**: SWR 기반 API 레이어 연결
@@ -260,76 +315,4 @@ npm install react-helmet-async
 
 
 ## TODO
-# Cart Page UI — Implementation Prompt (React + Tailwind)
-
-## Context / Reference
-Implement a **Cart (장바구니)** page UI inspired by the provided HTML snippet.  
-Use the snippet as **layout reference only**. Do **not** copy exact class names, assets, icons, or pixel-perfect styling.
-
-**Bundle complexity (로켓배송/판매자배송 등)** is **NOT required**.  
-This MVP cart should use a **single list** of cart items only.
-
-Target stack:
-- React + TypeScript
-- Tailwind CSS
-- React Router
-- Zustand (optional; mock/local state is fine for MVP)
-
----
-
-## Goal
-Build a responsive cart page with:
-
-1) Top title area: **Back button + “장바구니(n)”**
-2) Desktop step indicator: **01 옵션선택 → 02 장바구니(현재) → 03 주문/결제 → 04 주문완료**
-3) Main content area:
-    - Left: cart items list (selectable, editable quantity, delete)
-    - Right: sticky order summary (총 상품 가격, 배송비, 최종 결제금액, 구매하기 버튼)
-4) Mobile behavior:
-    - Order summary becomes a **fixed bottom bar** with final price + “구매하기”
-    - Items list remains scrollable above
-
----
-
-## Page Layout Spec
-
-### Desktop (>= lg)
-- Container centered with max width (e.g., 1200px)
-- Two columns:
-    - Left (flex-1): item list + selection controls
-    - Right (w ~ 300px): order summary sticky (top offset ~ 10px)
-
-### Mobile (< md)
-- Single column layout
-- Order summary becomes **bottom fixed bar**
-- Detailed breakdown (총 상품 가격/배송비) can be hidden or collapsible (optional)
-
----
-
-## Components (Create these)
-- `CartPage`
-- `CartHeader` (back + title + step indicator)
-- `CartItemRow` (checkbox + image + name/options + price + qty + delete)
-- `CartSelectionBar` (전체 선택, 선택삭제, 품절/종료상품 삭제 - last one can be stub)
-- `OrderSummary` (desktop right sticky)
-- `MobileCheckoutBar` (mobile bottom fixed)
-- `QuantityStepper` (+ / - / input)
-
----
-
-## Data Model (Mock First)
-```ts
-type CartItem = {
-  id: string;
-  brand?: string;
-  name: string;
-  optionText?: string;   // e.g., "옵션: 120g, 3개"
-  imageUrl: string;
-  price: number;         // discounted price
-  originalPrice?: number;
-  discountRate?: number; // 0~100
-  quantity: number;
-  selected: boolean;
-  deliveryText?: string; // e.g., "내일(화) 도착"
-  badges?: string[];     // optional simple text badges
-};
+_완료된 스펙 없음 — 위 백로그 참고._

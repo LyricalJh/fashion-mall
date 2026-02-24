@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Container from '../components/ui/Container'
-import { products } from '../mock/products'
+import { useStore } from '../store/useStore'
+import type { CartItem } from '../types/cart'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -25,17 +26,6 @@ const DELIVERY_MEMOS = [
   '부재 시 연락주세요',
   '직접 입력',
 ]
-
-const MOCK_ORDER_ITEMS = products.slice(0, 2).map((p, i) => ({
-  id: p.id,
-  brand: p.brand,
-  name: p.name,
-  imageUrl: p.imageUrl,
-  option: i === 0 ? '옵션: S / 블랙' : '옵션: M / 화이트',
-  price: p.price,
-  quantity: 1,
-}))
-
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -104,6 +94,12 @@ function InputField({
 
 export default function CheckoutPage() {
   const navigate = useNavigate()
+  const { cartItems, clearCart } = useStore()
+
+  // Use selected items; fall back to all items if nothing is selected
+  const orderItems = cartItems.filter((it) => it.selected).length > 0
+    ? cartItems.filter((it) => it.selected)
+    : cartItems
 
   // Form state
   const [form, setForm] = useState({
@@ -114,15 +110,17 @@ export default function CheckoutPage() {
     addressDetail: '',
     deliveryMemo: DELIVERY_MEMOS[0],
   })
+  const [customMemo, setCustomMemo] = useState('')
   const [payment, setPayment] = useState<string | null>(null)
   const [errors, setErrors] = useState<string[]>([])
 
-  const totalPrice = MOCK_ORDER_ITEMS.reduce((s, it) => s + it.price * it.quantity, 0)
+  const totalPrice = orderItems.reduce((s, it) => s + it.price * it.quantity, 0)
   const shippingFee = totalPrice >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE
   const finalPrice = totalPrice + shippingFee
 
-  const field = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-    setForm((prev) => ({ ...prev, [key]: e.target.value }))
+  const field = (key: keyof typeof form) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+      setForm((prev) => ({ ...prev, [key]: e.target.value }))
 
   const handleSubmit = () => {
     const errs: string[] = []
@@ -133,6 +131,7 @@ export default function CheckoutPage() {
     if (errs.length > 0) { setErrors(errs); return }
     setErrors([])
     const orderNo = `STYLE-${Date.now().toString().slice(-8)}`
+    clearCart()
     navigate('/order-complete', { state: { orderNo } })
   }
 
@@ -183,6 +182,15 @@ export default function CheckoutPage() {
                   >
                     {DELIVERY_MEMOS.map((m) => <option key={m}>{m}</option>)}
                   </select>
+                  {form.deliveryMemo === '직접 입력' && (
+                    <textarea
+                      value={customMemo}
+                      onChange={(e) => setCustomMemo(e.target.value)}
+                      placeholder="배송 메모를 입력해 주세요"
+                      rows={2}
+                      className="mt-1 rounded border border-gray-300 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900 resize-none"
+                    />
+                  )}
                 </label>
               </div>
             </section>
@@ -218,6 +226,7 @@ export default function CheckoutPage() {
           {/* ── Right column — desktop order summary ── */}
           <div className="hidden w-80 shrink-0 lg:block lg:sticky lg:top-28">
             <OrderSummaryPanel
+              orderItems={orderItems}
               totalPrice={totalPrice}
               shippingFee={shippingFee}
               finalPrice={finalPrice}
@@ -249,8 +258,9 @@ export default function CheckoutPage() {
 // ─── OrderSummaryPanel ────────────────────────────────────────────────────────
 
 function OrderSummaryPanel({
-  totalPrice, shippingFee, finalPrice, onSubmit,
+  orderItems, totalPrice, shippingFee, finalPrice, onSubmit,
 }: {
+  orderItems: CartItem[]
   totalPrice: number
   shippingFee: number
   finalPrice: number
@@ -262,17 +272,30 @@ function OrderSummaryPanel({
 
       {/* Item list */}
       <ul className="flex flex-col gap-3 border-b border-gray-100 pb-4">
-        {MOCK_ORDER_ITEMS.map((item) => (
-          <li key={item.id} className="flex gap-3">
-            <img src={item.imageUrl} alt={item.name} className="h-16 w-12 rounded object-cover" />
-            <div className="flex flex-col justify-center gap-0.5 min-w-0">
-              <p className="text-xs font-semibold uppercase text-gray-400">{item.brand}</p>
-              <p className="truncate text-sm font-medium text-gray-900">{item.name}</p>
-              <p className="text-xs text-gray-400">{item.option}</p>
-              <p className="text-sm font-bold text-gray-900">{formatKRW(item.price)}</p>
-            </div>
-          </li>
-        ))}
+        {orderItems.length === 0 ? (
+          <li className="text-sm text-gray-400">상품이 없습니다.</li>
+        ) : (
+          orderItems.map((item) => (
+            <li key={item.id} className="flex gap-3">
+              <img src={item.imageUrl} alt={item.name} className="h-16 w-12 rounded object-cover" />
+              <div className="flex flex-col justify-center gap-0.5 min-w-0">
+                {item.brand && (
+                  <p className="text-xs font-semibold uppercase text-gray-400">{item.brand}</p>
+                )}
+                <p className="truncate text-sm font-medium text-gray-900">{item.name}</p>
+                {item.optionText && (
+                  <p className="text-xs text-gray-400">{item.optionText}</p>
+                )}
+                <p className="text-sm font-bold text-gray-900">
+                  {(item.price * item.quantity).toLocaleString('ko-KR')}원
+                  {item.quantity > 1 && (
+                    <span className="ml-1 text-xs font-normal text-gray-400">×{item.quantity}</span>
+                  )}
+                </p>
+              </div>
+            </li>
+          ))
+        )}
       </ul>
 
       {/* Price breakdown */}

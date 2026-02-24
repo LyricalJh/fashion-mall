@@ -23,8 +23,8 @@ export default function CatalogNav() {
               </li>
             ))}
           </ul>
-          {/* Mobile hamburger */}
-          <div className="flex items-center py-3 md:hidden">
+          {/* Mobile hamburger — hidden; replaced by MobileBottomNav */}
+          <div className="hidden items-center py-3 md:hidden">
             <button
               onClick={() => setDrawerOpen(true)}
               className="flex items-center gap-2 text-sm font-medium text-gray-700"

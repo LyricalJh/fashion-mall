@@ -4,19 +4,19 @@ import Container from '../ui/Container'
 import IconButton from '../ui/IconButton'
 
 export default function Header() {
-  const cartCount = useStore((s) => s.cartCount)
+  const cartCount = useStore((s) => s.cartItems.reduce((sum, it) => sum + it.quantity, 0))
 
   return (
     <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/95 backdrop-blur-sm">
       <Container>
-        <div className="flex h-16 items-center gap-4">
+        <div className="flex h-12 items-center gap-4 md:h-16">
           {/* Brand logo */}
           <Link to="/" className="shrink-0 text-xl font-black tracking-tight text-gray-900">
             STYLE<span className="text-rose-500">HUB</span>
           </Link>
 
           {/* Search */}
-          <div className="mx-4 flex flex-1 items-center rounded-full border border-gray-200 bg-gray-50 px-4 py-2">
+          <div className="mx-4 hidden flex-1 items-center rounded-full border border-gray-200 bg-gray-50 px-4 py-2 md:flex">
             <svg className="mr-2 h-4 w-4 shrink-0 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="11" cy="11" r="8" />
               <line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -29,13 +29,15 @@ export default function Header() {
           </div>
 
           {/* Icons */}
-          <div className="flex items-center gap-1">
-            <IconButton label="Login">
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-              </svg>
-            </IconButton>
+          <div className="hidden items-center gap-1 md:flex">
+            <Link to="/mypage">
+              <IconButton label="마이페이지">
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+              </IconButton>
+            </Link>
 
             <IconButton label="Favorites">
               <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
