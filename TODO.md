@@ -1,187 +1,394 @@
-# Fashion Mall MVP (React) — UI Spec for Claude Code
+# SHOP Backend Project — Claude Code Agent Team Spec
 
-## Goal
-Build a **front-end only MVP** (screen-first) for a fashion shopping mall main page inspired by the reference site below.  
-Focus on **layout, responsiveness, reusable components, and clean code structure**.  
-Use **dummy data** first (JSON in code). No backend integration yet.
-
-### Reference
-- https://www.shinsegaev.com/zone/main/init.siv
-
-> Important: Use the reference for **UX/layout patterns only**.  
-> Do **not** copy brand assets, logos, text, images, or pixel-perfect styling.  
-> Use placeholder images/text and a distinct design system.
+> Root Path: `/shop`  
+> Frontend Path: `/shop/fashion-mall`  
+> Backend Path: `/shop/backend`  
+> Architecture: Monorepo (Frontend + Backend)  
+> Development Mode: Claude Code Agent Teams  
 
 ---
 
-## Tech Stack
-- Vite + React + TypeScript
-- Tailwind CSS (responsive: mobile / tablet / desktop)
-- React Router DOM (routes scaffold)
-- Zustand (client UI state: e.g., favorites, cart count)
-- SWR (optional now; prepare API layer structure)
+# 1. 🎯 Project Goal
+
+패션 쇼핑몰 MVP를 프론트엔드와 완전히 연동 가능한 **Spring Boot 기반 백엔드 시스템**으로 확장한다.
+
+목표:
+
+- 프론트엔드와 REST API 연동
+- PostgreSQL 기반 데이터 영속화
+- Docker 기반 로컬 개발 환경
+- 실서비스 확장을 고려한 구조 설계
+- 보안/QA/PM 검증을 거친 안정적 구조
 
 ---
 
-## MVP Pages (Routing)
-- `/` : Main page (home)
-- `/category/:slug` : Category product list (stub UI)
-- `/product/:id` : Product detail (stub UI)
-- `/cart` : Cart (stub UI)
-- `/checkout` : Checkout (stub UI)
+# 2. 👥 Claude Agent Team 구성
 
-> For now, only the **Home page** needs a polished UI. Others can be simple placeholders.
+Claude Code 실행 시 반드시 아래 팀을 구성하여 역할 분담 후 병렬 개발 진행한다.
 
 ---
 
-## Home Page UI Requirements (MVP)
+## 1️⃣ Frontend Agent
 
-### 1) Header (Top)
-- Left: Brand placeholder (text logo)
-- Center: Search input (non-functional ok)
-- Right: Icons (Login, Favorites, Cart) + cart count badge (state with Zustand)
-- Sticky header on scroll (optional but recommended)
+역할:
 
-### 2) Catalog Navigation (below header)
-Horizontal nav menu with these items (exact order not critical):
-- 브랜드, 여성, 남성, 패션잡화, 뷰티, 골프, 리빙, etc.
+- 기존 `/shop/fashion-mall` 유지
+- SWR 기반 API 연동 준비
+- 환경변수로 API URL 분리
+- 에러 핸들링 UX 처리
+- 인증/토큰 저장 구조 준비
 
-Behavior:
-- Desktop: horizontal menu
-- Mobile: hamburger → drawer/slide menu (simple)
+주의:
 
-### 3) Hero Banner Carousel (below catalog)
-A rotating banner carousel with:
-- Auto-play
-- Dots indicator
-- Prev/Next buttons (desktop)
-- Swipe on mobile (optional)
-- Ideal banner unit: **full width** with responsive height
-- Use placeholder images (or gradient blocks) + short headline text overlay
-
-### 4) Chapter Sections (multiple)
-Each chapter block consists of:
-- Section title
-- Optional “View All” link (to a category/list stub)
-- Product grid under the title
-
-Chapters (exact strings):
-- Today Best
-- Brand Pick
-- HOT DEAL
-- Favorite Brand
-- What’s up
-- New Arrival
-- This Week
-
-### 5) Product Grid (under each chapter)
-- Use cards in a responsive grid
-- Desktop: 4–6 columns depending on width
-- Tablet: 2–3 columns
-- Mobile: 2 columns (or 1 column if you prefer readability)
-
-Each product card displays:
-- Thumbnail image
-- Brand name
-- Product name
-- Price
-- Discount rate + original price (optional)
-- Badge (e.g., HOT, NEW, BEST) (optional)
-- Heart icon (favorite toggle via Zustand)
-
-Card behavior:
-- Hover (desktop): subtle elevation + image zoom (light)
-- Click → navigate `/product/:id`
+- API 계약 변경 시 Backend Agent와 즉시 협의
+- 하드코딩 금지
+- mock → 실제 API 전환 시 fallback 제거
 
 ---
 
-## Components to Implement (Reusable)
-Create these components with clean props types:
+## 2️⃣ Backend Agent
 
-### Layout
-- `AppLayout` (header + nav + footer wrapper)
-- `Header`
-- `CatalogNav`
-- `Footer` (simple)
+기술 스택:
 
-### Home Sections
-- `HeroCarousel`
-- `SectionBlock` (title + optional action)
-- `ProductGrid`
-- `ProductCard`
+- Spring Boot 3.x
+- Spring Web
+- Spring Data JPA
+- JPQL
+- QueryDSL (복잡 쿼리 발생 시 도입)
+- PostgreSQL
+- Lombok
+- Validation
+- Global Exception Handler
+- Swagger (springdoc-openapi)
 
-### Common UI
-- `Button`
-- `IconButton`
-- `Badge`
-- `Price` (formatting helper)
-- `Container` (max-width wrapper)
+책임:
 
----
+- 도메인 설계
+- JPA Entity 작성
+- Repository 설계
+- Service 계층 분리
+- Controller REST 설계
+- 페이징/정렬/검색 구현
+- 트랜잭션 관리
 
-## State (Zustand) — Minimum
-- `favorites`: Set of product IDs
-- `cartCount`: number (mock)
-- Methods: `toggleFavorite(id)`, `incrementCart()`, `decrementCart()`
+원칙:
 
----
-
-## Data Model (Dummy Data)
-Create a `src/mock/` folder with:
-- `categories.ts`
-- `banners.ts`
-- `products.ts`
-- `sections.ts` (which products belong to each chapter)
-
-Types:
-- `Category { id, label, slug }`
-- `Banner { id, title, subtitle?, imageUrl }`
-- `Product { id, brand, name, price, originalPrice?, discountRate?, imageUrl, badge? }`
-- `HomeSection { key, title, productIds }`
+- Controller는 비즈니스 로직 금지
+- Service 계층에 트랜잭션
+- DTO 사용 (Entity 직접 반환 금지)
+- N+1 방지
+- Fetch Join 전략 명확화
 
 ---
 
-## Responsive Rules (Minimum)
-- Use Tailwind breakpoints:
-    - Mobile: default
-    - `md` for tablet
-    - `lg/xl` for desktop
-- Keep spacing/typography consistent:
-    - Titles: bold, clear hierarchy
-    - Cards: consistent padding, radius, shadow
+## 3️⃣ QA Engineering Agent
+
+책임:
+
+- API 응답 스키마 검증
+- 예외 케이스 테스트
+- 경계값 테스트
+- 장바구니 수량 음수 방지 검증
+- 주문 금액 계산 정확성 검증
+- 동시성 테스트
+
+필수 검증 목록:
+
+- 상품이 없을 때 404 반환
+- 잘못된 ID 접근 시 예외 처리
+- SQL Injection 방어
+- 잘못된 JSON 요청 처리
 
 ---
 
-## Styling Guidance
-- Clean, modern, minimal e-commerce vibe
-- Use neutral palette by default (black/white/gray)
-- Use subtle accent color for buttons/badges (choose one)
-- Avoid copying reference’s exact colors/typography.
+## 4️⃣ Security Audit Agent
+
+점검 항목:
+
+- SQL Injection
+- XSS
+- CSRF 전략
+- CORS 설정
+- 비밀번호 암호화 (BCrypt)
+- JWT 토큰 구조 설계
+- 민감정보 로그 출력 금지
+- Spring Security 설정
+
+정책:
+
+- 모든 write API 인증 필요
+- 관리자 API 분리
+- Role 기반 접근 제어
 
 ---
 
-## Acceptance Checklist
-- [ ] Home page shows header + catalog nav
-- [ ] Banner carousel auto-rotates and is responsive
-- [ ] 7 chapter sections render in order with grids
-- [ ] Product cards look consistent and clickable
-- [ ] Favorite toggle works (Zustand state)
-- [ ] Cart count badge visible (mock)
-- [ ] Mobile layout works (nav collapses + grids adjust)
+## 5️⃣ PM Agent (쇼핑몰 도메인 전문가)
+
+목표:
+
+사용자가 아래 흐름에서 이탈하지 않도록 설계 검증한다.
+
+User Flow:
+
+1. 홈 → 카테고리 → 상품 상세
+2. 장바구니 담기
+3. 수량 변경
+4. 주문
+5. 결제
+6. 주문 완료
+
+검증 항목:
+
+- UX 끊김 없음
+- 가격 계산 오류 없음
+- 재고 부족 시 처리 명확
+- 주문 실패 시 롤백
+- 재주문 가능 여부
 
 ---
 
-## Deliverables
-- A working Vite React project that runs with:
-    - `npm install`
-    - `npm run dev`
-- Clean folder structure (`components/`, `pages/`, `mock/`, `store/`, `routes/`)
-- No backend required; dummy data only
-- All UI must be responsive
+# 3.📁 Backend 프로젝트 구조
+
+
+
+
+
+
+
+/shop
+├── fashion-mall   (frontend)
+└── backend
+├── src/main/java/com/shop
+│   ├── domain
+│   │   ├── product
+│   │   ├── category
+│   │   ├── cart
+│   │   ├── order
+│   │   ├── user
+│   │   └── common
+│   ├── global
+│   │   ├── config
+│   │   ├── exception
+│   │   └── security
+│   └── ShopApplication.java
+├── src/main/resources
+│   ├── application.yml
+│   └── data.sql
+├── build.gradle
+└── Dockerfile
+
+
+
+
+
+
 
 ---
 
-## Notes / Constraints
-- Do not scrape/copy the reference site’s assets or exact HTML/CSS.
-- Use placeholders and recreate layout patterns in your own design system.
-- Keep code readable and modular (small components, typed props).
+# 4. 🗄️ Database 설계 (PostgreSQL)
+
+기본 테이블:
+
+- users
+- categories
+- products
+- product_images
+- cart_items
+- orders
+- order_items
+
+설계 원칙:
+
+- FK 명확화
+- index 필수 적용
+- soft delete 여부 명확히 정의
+- created_at / updated_at 공통 컬럼
+
+---
+
+# 5. 🐳 Docker 기반 개발 환경
+
+루트 경로: `/shop`
+
+## docker-compose.yml
+
+
+
+
+
+
+version: “3.9”
+
+services:
+
+postgres:
+image: postgres:16
+container_name: shop-postgres
+environment:
+POSTGRES_DB: shop
+POSTGRES_USER: shop
+POSTGRES_PASSWORD: shop
+ports:
+- “5432:5432”
+volumes:
+- postgres-data:/var/lib/postgresql/data
+
+backend:
+build: ./backend
+container_name: shop-backend
+ports:
+- “8080:8080”
+depends_on:
+- postgres
+environment:
+SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/shop
+SPRING_DATASOURCE_USERNAME: shop
+SPRING_DATASOURCE_PASSWORD: shop
+
+volumes:
+postgres-data:
+
+
+
+
+
+
+---
+
+# 6. 🔄 개발 단계 전략
+
+### Phase 1 — 기본 인프라
+
+- Docker 구성
+- Spring Boot 프로젝트 생성
+- PostgreSQL 연결
+- Swagger 설정
+- Global Exception 설정
+
+---
+
+### Phase 2 — 상품 도메인
+
+- Category
+- Product
+- ProductImage
+- 페이징 조회
+- 카테고리 필터
+- 가격 정렬
+
+---
+
+### Phase 3 — 장바구니
+
+- 로그인 사용자 기준
+- 장바구니 추가
+- 수량 변경
+- 삭제
+- 총 금액 계산
+
+---
+
+### Phase 4 — 주문
+
+- 주문 생성
+- 재고 감소
+- 주문 아이템 분리
+- 트랜잭션 처리
+- 주문 완료 응답
+
+---
+
+# 7. 📡 API 설계 원칙
+
+REST 규칙 준수:
+
+GET /api/products  
+GET /api/products/{id}  
+POST /api/cart  
+PUT /api/cart/{id}  
+DELETE /api/cart/{id}  
+POST /api/orders  
+
+## 응답 형식
+
+
+
+
+
+
+{
+“success”: true,
+“data”: {},
+“error”: null
+}
+
+
+
+
+
+## 에러 형식
+
+
+
+
+
+{
+“success”: false,
+“error”: {
+“code”: “PRODUCT_NOT_FOUND”,
+“message”: “상품이 존재하지 않습니다.”
+}
+}
+
+
+
+
+
+
+---
+
+# 8. 🔐 보안 기본 정책
+
+- JWT 기반 인증
+- Access + Refresh 구조
+- BCrypt 비밀번호 암호화
+- CORS 프론트엔드 도메인만 허용
+- 관리자 권한 분리
+
+---
+
+# 9. 🧪 QA 자동 검증 체크리스트
+
+- 상품이 없을 때 404
+- 재고 초과 주문 불가
+- 주문 취소 시 재고 복구
+- 음수 수량 입력 차단
+- 가격 변조 방지
+
+---
+
+# 10. 🚀 최종 목표
+
+프론트엔드와 완전 연동 가능한:
+
+- 확장 가능한 구조
+- 보안 검증 완료
+- 도메인 중심 설계
+- Docker 기반 실행 가능
+- 실서비스 이전 가능한 아키텍처
+
+---
+
+# 실행 규칙
+
+Claude Code는:
+
+1. 위 팀을 구성한다.
+2. Backend Agent가 먼저 인프라 구축을 시작한다.
+3. QA + Security Agent는 병렬 검증을 수행한다.
+4. PM Agent는 사용자 흐름 기준으로 기능 누락 여부 검증한다.
+5. Frontend Agent는 API 계약 기반으로 SWR 연동 준비한다.
+
+---
+
+# End of Agent Team Spec

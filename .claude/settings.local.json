@@ -1,10 +1,13 @@
 {
   "permissions": {
     "allow": [
+      "Bash(curl:*)",
+      "Bash(chmod +x:*)",
+      "Bash(find:*)",
       "Bash(tail:*)",
-      "Bash(cd /c/projects/fashion-mall && PATH=\"/c/Program Files/nodejs:$PATH\" \"/c/Program Files/nodejs/npm.cmd\" run build 2>&1)",
-      "Bash(npx tsc:)",
-      "Bash(npx tsc:*)"
+      "Bash(cd /Users/junghanso/Documents/shop/backend && ./gradlew compileJava 2>&1)",
+      "Bash(npm run:*)",
+      "Bash(./gradlew test:*)"
     ]
   }
 }
