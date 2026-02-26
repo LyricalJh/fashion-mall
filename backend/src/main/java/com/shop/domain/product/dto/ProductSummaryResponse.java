@@ -17,11 +17,14 @@ public class ProductSummaryResponse {
     private Long categoryId;
     private String categoryName;
     private String thumbnailUrl;
+    private String productCode;
+    private String status;
 
     public static ProductSummaryResponse from(Product product) {
-        String thumbnailUrl = product.getImages().isEmpty()
-                ? null
-                : product.getImages().get(0).getUrl();
+        String thumbnail = product.getThumbnailUrl();
+        if (thumbnail == null || thumbnail.isBlank()) {
+            thumbnail = product.getImages().isEmpty() ? null : product.getImages().get(0).getUrl();
+        }
 
         return ProductSummaryResponse.builder()
                 .id(product.getId())
@@ -30,7 +33,9 @@ public class ProductSummaryResponse {
                 .stock(product.getStock())
                 .categoryId(product.getCategory() != null ? product.getCategory().getId() : null)
                 .categoryName(product.getCategory() != null ? product.getCategory().getName() : null)
-                .thumbnailUrl(thumbnailUrl)
+                .thumbnailUrl(thumbnail)
+                .productCode(product.getProductCode())
+                .status(product.getStatus().name())
                 .build();
     }
 }

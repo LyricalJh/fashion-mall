@@ -37,6 +37,7 @@ public class SecurityConfig {
             "/api/auth/**",
             "/api/products/**",
             "/api/categories/**",
+            "/api/payments/**",
             "/api-docs/**",
             "/swagger-ui/**",
             "/swagger-ui.html"
@@ -93,6 +94,7 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(List.of(
                 "http://localhost:5173",
+                "http://localhost:5174",
                 "http://localhost:3000"
         ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));

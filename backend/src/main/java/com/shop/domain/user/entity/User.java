@@ -30,6 +30,16 @@ public class User extends BaseEntity {
     @Builder.Default
     private Role role = Role.USER;
 
+    @Column(unique = true)
+    private Long kakaoId;
+
+    private String profileImageUrl;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private LoginType loginType = LoginType.LOCAL;
+
     public enum Role {
         ADMIN, USER
     }

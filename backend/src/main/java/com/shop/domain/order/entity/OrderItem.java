@@ -33,12 +33,16 @@ public class OrderItem {
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal priceAtOrder; // 주문 시점 가격 스냅샷
 
+    @Column(nullable = false)
+    private String productName;
+
     @Builder
-    public OrderItem(Order order, Product product, int quantity, BigDecimal priceAtOrder) {
+    public OrderItem(Order order, Product product, int quantity, BigDecimal priceAtOrder, String productName) {
         this.order = order;
         this.product = product;
         this.quantity = quantity;
         this.priceAtOrder = priceAtOrder;
+        this.productName = productName;
     }
 
     /**

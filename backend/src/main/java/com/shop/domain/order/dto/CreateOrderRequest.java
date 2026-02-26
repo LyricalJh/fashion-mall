@@ -26,6 +26,8 @@ public class CreateOrderRequest {
     @NotBlank(message = "수령인 연락처는 필수입니다.")
     private String receiverPhone;
 
+    private String shippingMemo;
+
     @Getter
     @NoArgsConstructor
     public static class OrderItemRequest {

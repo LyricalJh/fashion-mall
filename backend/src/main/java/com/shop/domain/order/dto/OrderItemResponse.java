@@ -21,7 +21,7 @@ public class OrderItemResponse {
         return OrderItemResponse.builder()
                 .id(orderItem.getId())
                 .productId(orderItem.getProduct().getId())
-                .productName(orderItem.getProduct().getName())
+                .productName(orderItem.getProductName())
                 .quantity(orderItem.getQuantity())
                 .priceAtOrder(orderItem.getPriceAtOrder())
                 .subtotal(orderItem.getSubtotal())

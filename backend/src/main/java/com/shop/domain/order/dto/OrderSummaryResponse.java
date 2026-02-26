@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 public class OrderSummaryResponse {
 
     private Long id;
+    private String orderNumber;
     private BigDecimal totalPrice;
     private OrderStatus status;
     private int itemCount;
@@ -21,6 +22,7 @@ public class OrderSummaryResponse {
     public static OrderSummaryResponse from(Order order) {
         return OrderSummaryResponse.builder()
                 .id(order.getId())
+                .orderNumber(order.getOrderNumber())
                 .totalPrice(order.getTotalPrice())
                 .status(order.getStatus())
                 .itemCount(order.getItems().size())

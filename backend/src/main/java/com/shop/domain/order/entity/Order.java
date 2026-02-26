@@ -38,6 +38,11 @@ public class Order extends BaseEntity {
     @Column(nullable = false)
     private OrderStatus status = OrderStatus.PENDING;
 
+    @Column(nullable = false, unique = true)
+    private String orderNumber;
+
+    private String shippingMemo;
+
     // 배송 정보
     private String shippingAddress;
     private String receiverName;
@@ -45,12 +50,14 @@ public class Order extends BaseEntity {
 
     @Builder
     public Order(User user, BigDecimal totalPrice, String shippingAddress,
-                 String receiverName, String receiverPhone) {
+                 String receiverName, String receiverPhone, String orderNumber, String shippingMemo) {
         this.user = user;
         this.totalPrice = totalPrice;
         this.shippingAddress = shippingAddress;
         this.receiverName = receiverName;
         this.receiverPhone = receiverPhone;
+        this.orderNumber = orderNumber;
+        this.shippingMemo = shippingMemo;
         this.status = OrderStatus.PENDING;
     }
 
@@ -71,5 +78,9 @@ public class Order extends BaseEntity {
 
     public void updateTotalPrice(BigDecimal totalPrice) {
         this.totalPrice = totalPrice;
+    }
+
+    public void markPaid() {
+        this.status = OrderStatus.PAID;
     }
 }

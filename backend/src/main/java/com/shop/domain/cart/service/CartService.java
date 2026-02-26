@@ -7,6 +7,7 @@ import com.shop.domain.cart.dto.UpdateCartRequest;
 import com.shop.domain.cart.entity.CartItem;
 import com.shop.domain.cart.repository.CartItemRepository;
 import com.shop.domain.product.entity.Product;
+import com.shop.domain.product.entity.ProductStatus;
 import com.shop.domain.product.repository.ProductRepository;
 import com.shop.domain.user.entity.User;
 import com.shop.domain.user.repository.UserRepository;
@@ -43,7 +44,7 @@ public class CartService {
      * 장바구니 담기 (이미 담겨 있으면 수량 추가)
      */
     public CartItemResponse addToCart(Long userId, AddCartRequest request) {
-        Product product = productRepository.findByIdAndDeletedFalse(request.getProductId())
+        Product product = productRepository.findByIdAndStatus(request.getProductId(), ProductStatus.ACTIVE)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
 
         if (product.getStock() <= 0) {

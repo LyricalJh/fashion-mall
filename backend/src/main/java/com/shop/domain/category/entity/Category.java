@@ -24,4 +24,11 @@ public class Category extends BaseEntity {
 
     @Column
     private int displayOrder;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id")
+    private Category parent;
+
+    @Column(nullable = false)
+    private int depth = 0;
 }

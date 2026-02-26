@@ -21,6 +21,8 @@ public class ProductDetailResponse {
     private Long categoryId;
     private String categoryName;
     private List<String> images;
+    private String productCode;
+    private String status;
 
     public static ProductDetailResponse from(Product product) {
         List<String> imageUrls = product.getImages().stream()
@@ -36,6 +38,8 @@ public class ProductDetailResponse {
                 .categoryId(product.getCategory() != null ? product.getCategory().getId() : null)
                 .categoryName(product.getCategory() != null ? product.getCategory().getName() : null)
                 .images(imageUrls)
+                .productCode(product.getProductCode())
+                .status(product.getStatus().name())
                 .build();
     }
 }

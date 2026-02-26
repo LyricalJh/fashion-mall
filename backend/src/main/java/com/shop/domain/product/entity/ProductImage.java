@@ -7,7 +7,9 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
-@Table(name = "product_images")
+@Table(name = "product_images", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"product_id", "image_order"})
+})
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ProductImage {
 

@@ -15,7 +15,9 @@ import java.util.List;
 
 @Getter
 @Entity
-@Table(name = "products")
+@Table(name = "products", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"name", "category_id"})
+})
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Product extends BaseEntity {
 
@@ -39,8 +41,14 @@ public class Product extends BaseEntity {
     @JoinColumn(name = "category_id")
     private Category category;
 
+    @Column(nullable = false, unique = true)
+    private String productCode;
+
+    private String thumbnailUrl;
+
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private boolean deleted = false;
+    private ProductStatus status = ProductStatus.ACTIVE;
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("imageOrder ASC")

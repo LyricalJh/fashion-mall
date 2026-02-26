@@ -6,7 +6,10 @@ import ProductDetailPage from '../pages/ProductDetailPage'
 import CartPage from '../pages/CartPage'
 import CheckoutPage from '../pages/CheckoutPage'
 import OrderCompletePage from '../pages/OrderCompletePage'
+import PaymentSuccessPage from '../pages/PaymentSuccessPage'
+import PaymentFailPage from '../pages/PaymentFailPage'
 import LoginPage from '../pages/LoginPage'
+import KakaoCallbackPage from '../pages/KakaoCallbackPage'
 import MyPageLayout from '../pages/MyPage/MyPageLayout'
 import OrderListPage from '../pages/MyPage/OrderListPage'
 import OrderDetailPage from '../pages/MyPage/OrderDetailPage'
@@ -35,6 +38,10 @@ export const router = createBrowserRouter([
     element: <LoginPage />,
   },
   {
+    path: '/auth/kakao/callback',
+    element: <KakaoCallbackPage />,
+  },
+  {
     path: '/',
     element: <AppLayout />,
     children: [
@@ -44,6 +51,8 @@ export const router = createBrowserRouter([
       { path: 'cart', element: <CartPage /> },
       { path: 'checkout', element: <CheckoutPage /> },
       { path: 'order-complete', element: <OrderCompletePage /> },
+      { path: 'payment/success', element: <PaymentSuccessPage /> },
+      { path: 'payment/fail', element: <PaymentFailPage /> },
       {
         path: 'mypage',
         element: <RequireAuth><MyPageLayout /></RequireAuth>,

@@ -12,6 +12,8 @@ public class CategoryResponse {
     private String name;
     private String description;
     private int displayOrder;
+    private Long parentId;
+    private int depth;
 
     public static CategoryResponse from(Category category) {
         return CategoryResponse.builder()
@@ -19,6 +21,8 @@ public class CategoryResponse {
                 .name(category.getName())
                 .description(category.getDescription())
                 .displayOrder(category.getDisplayOrder())
+                .parentId(category.getParent() != null ? category.getParent().getId() : null)
+                .depth(category.getDepth())
                 .build();
     }
 }

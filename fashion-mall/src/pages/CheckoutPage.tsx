@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { loadTossPayments } from '@tosspayments/tosspayments-sdk'
 import Container from '../components/ui/Container'
 import { useStore } from '../store/useStore'
 import { useAuthStore } from '../store/authStore'
@@ -157,6 +158,7 @@ export default function CheckoutPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn)
+  const user = useAuthStore((s) => s.user)
   const { cartItems, clearCart } = useStore()
   const { cart, mutate: mutateCart } = useCart()
 
@@ -194,6 +196,32 @@ export default function CheckoutPage() {
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
       setForm((prev) => ({ ...prev, [key]: e.target.value }))
 
+  const mapPaymentMethod = (method: string): string => {
+    switch (method) {
+      case 'card': case 'kakao': case 'naver': return 'CARD'
+      case 'bank': return 'TRANSFER'
+      default: return 'CARD'
+    }
+  }
+
+  const requestTossPayment = async (orderId: string, amount: number, orderName: string, customerKey: string) => {
+    const clientKey = import.meta.env.VITE_TOSS_CLIENT_KEY as string
+    const tossPayments = await loadTossPayments(clientKey)
+    const tossPayment = tossPayments.payment({ customerKey })
+
+    await tossPayment.requestPayment({
+      method: mapPaymentMethod(payment!),
+      amount: { currency: 'KRW', value: amount },
+      orderId,
+      orderName,
+      successUrl: `${window.location.origin}/payment/success`,
+      failUrl: `${window.location.origin}/payment/fail`,
+      customerEmail: user?.email,
+      customerName: form.name,
+      customerMobilePhone: form.phone.replace(/-/g, ''),
+    })
+  }
+
   const handleSubmit = async () => {
     const errs: string[] = []
     if (!form.name.trim())    errs.push('수령인을 입력해 주세요.')
@@ -203,9 +231,10 @@ export default function CheckoutPage() {
     if (errs.length > 0) { setErrors(errs); return }
     setErrors([])
 
+    setSubmitting(true)
+
     if (isLoggedIn && !directItem && cart && cart.items.length > 0) {
       // API order submission
-      setSubmitting(true)
       try {
         const body: CreateOrderRequest = {
           items: cart.items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
@@ -215,16 +244,25 @@ export default function CheckoutPage() {
         }
         const order = await apiPost<OrderResponse>('/orders', body)
         await mutateCart()
-        navigate('/order-complete', { state: { orderNo: `STYLE-${order.id}` } })
+
+        const orderId = order.orderNumber ?? `ORD${order.id}`
+        const customerKey = `customer_${user!.userId}`
+        await requestTossPayment(orderId, order.totalPrice, `주문 ${orderId}`, customerKey)
       } catch (err) {
         setErrors([err instanceof Error ? err.message : '주문 처리에 실패했습니다.'])
         setSubmitting(false)
       }
     } else {
-      // Local / direct buy order
-      const orderNo = `STYLE-${Date.now().toString().slice(-8)}`
-      if (!directItem) clearCart()
-      navigate('/order-complete', { state: { orderNo } })
+      // Local / direct buy order (guest or direct buy)
+      try {
+        const orderId = `ORD${Date.now()}`
+        const customerKey = `ANONYMOUS`
+        await requestTossPayment(orderId, finalPrice, `주문 ${orderId}`, customerKey)
+        if (!directItem) clearCart()
+      } catch (err) {
+        setErrors([err instanceof Error ? err.message : '결제 처리에 실패했습니다.'])
+        setSubmitting(false)
+      }
     }
   }
 

@@ -3,6 +3,7 @@ package com.shop.domain.product.service;
 import com.shop.domain.product.dto.ProductDetailResponse;
 import com.shop.domain.product.dto.ProductPageResponse;
 import com.shop.domain.product.dto.ProductSummaryResponse;
+import com.shop.domain.product.entity.ProductStatus;
 import com.shop.domain.product.repository.ProductRepository;
 import com.shop.global.exception.BusinessException;
 import com.shop.global.exception.ErrorCode;
@@ -32,7 +33,7 @@ public class ProductService {
     }
 
     public ProductDetailResponse getProduct(Long id) {
-        return productRepository.findByIdAndDeletedFalse(id)
+        return productRepository.findByIdAndStatus(id, ProductStatus.ACTIVE)
                 .map(ProductDetailResponse::from)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
     }

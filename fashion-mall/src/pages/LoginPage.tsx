@@ -20,10 +20,16 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
 
   function handleSocialLogin(provider: 'kakao' | 'naver') {
+    if (provider === 'kakao') {
+      const apiUrl = import.meta.env.VITE_API_URL as string
+      window.location.href = `${apiUrl}/auth/kakao`
+      return
+    }
+    // Naver login is not yet implemented - use stub
     const stubUser = {
       userId: 0,
       email: `${provider}@stub.local`,
-      name: provider === 'kakao' ? '카카오 사용자' : '네이버 사용자',
+      name: '네이버 사용자',
       role: 'USER',
     }
     loginStore(stubUser, 'stub-access-token', 'stub-refresh-token')

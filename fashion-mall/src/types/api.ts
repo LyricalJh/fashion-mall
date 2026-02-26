@@ -12,6 +12,8 @@ export interface ProductSummary {
   categoryId: number
   categoryName: string
   thumbnailUrl: string | null
+  productCode?: string
+  status?: string
 }
 
 export interface ProductDetail {
@@ -23,6 +25,8 @@ export interface ProductDetail {
   categoryId: number
   categoryName: string
   images: string[]
+  productCode?: string
+  status?: string
 }
 
 export interface ProductPage {
@@ -38,6 +42,8 @@ export interface CategoryItem {
   name: string
   description: string
   displayOrder: number
+  parentId?: number
+  depth?: number
 }
 
 export interface CartItemResponse {
@@ -78,9 +84,10 @@ export interface OrderItemResponse {
 export interface OrderSummaryResponse {
   id: number
   totalPrice: number
-  status: string // PENDING | PAID | SHIPPING | DELIVERED | CANCELLED
+  status: string // PENDING | CONFIRMED | PAID | SHIPPING | DELIVERED | CANCELLED
   itemCount: number
   createdAt: string // ISO 8601
+  orderNumber?: string
 }
 
 export interface OrderPage {
@@ -101,6 +108,8 @@ export interface OrderResponse {
   receiverName: string
   receiverPhone: string
   createdAt: string
+  orderNumber?: string
+  shippingMemo?: string
 }
 
 export interface CreateOrderRequest {
@@ -108,4 +117,5 @@ export interface CreateOrderRequest {
   shippingAddress: string
   receiverName: string
   receiverPhone: string
+  shippingMemo?: string
 }
