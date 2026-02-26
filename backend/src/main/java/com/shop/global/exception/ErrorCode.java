@@ -41,6 +41,7 @@ public enum ErrorCode {
     // Kakao
     KAKAO_TOKEN_REQUEST_FAILED(HttpStatus.BAD_GATEWAY, "KAKAO_TOKEN_REQUEST_FAILED", "카카오 토큰 요청에 실패했습니다."),
     KAKAO_USER_INFO_REQUEST_FAILED(HttpStatus.BAD_GATEWAY, "KAKAO_USER_INFO_REQUEST_FAILED", "카카오 사용자 정보 요청에 실패했습니다."),
+    KAKAO_SHIPPING_ADDRESS_FAILED(HttpStatus.BAD_GATEWAY, "KAKAO_SHIPPING_ADDRESS_FAILED", "카카오 배송지 조회에 실패했습니다."),
 
     // Validation
     INVALID_INPUT(HttpStatus.BAD_REQUEST, "INVALID_INPUT", "입력값이 올바르지 않습니다."),

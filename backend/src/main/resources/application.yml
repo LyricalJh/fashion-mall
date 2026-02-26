@@ -30,8 +30,8 @@ jwt:
   secret: ${JWT_SECRET:shopSecretKeyForJwtTokenGenerationAndValidation2024}
 
 kakao:
-  rest-api-key: ${KAKAO_REST_API_KEY:9165aeef6adef1aae6a235f1978a731d}
-  client-secret: ${KAKAO_CLIENT_SECRET:KWAsQkNMtz32IzvbTtxcEMAy4pc0Mp7W}
+  rest-api-key: ${KAKAO_REST_API_KEY:849b394b19671c0cc33743a702e7b918}
+  client-secret: ${KAKAO_CLIENT_SECRET:Vzv7fJLHGL0c7Tb4HS7mANpcKekQ3JEc}
   redirect-uri: ${KAKAO_REDIRECT_URI:http://localhost:5173/auth/kakao/callback}
 
 toss:

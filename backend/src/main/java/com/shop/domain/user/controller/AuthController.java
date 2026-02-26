@@ -2,7 +2,9 @@ package com.shop.domain.user.controller;
 
 import com.shop.domain.user.dto.AuthResponse;
 import com.shop.domain.user.dto.LoginRequest;
+import com.shop.domain.user.dto.RefreshTokenRequest;
 import com.shop.domain.user.dto.SignupRequest;
+import com.shop.domain.user.dto.UpdateAddressRequest;
 import com.shop.domain.user.service.AuthService;
 import com.shop.domain.user.service.KakaoAuthService;
 import com.shop.global.response.ApiResponse;
@@ -17,6 +19,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import com.shop.global.security.UserPrincipal;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 import java.net.URI;
 
@@ -74,6 +79,13 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.ok(authResponse));
     }
 
+    @Operation(summary = "토큰 갱신", description = "리프레시 토큰으로 새 액세스 토큰을 발급합니다.")
+    @PostMapping("/refresh")
+    public ResponseEntity<ApiResponse<AuthResponse>> refresh(@Valid @RequestBody RefreshTokenRequest request) {
+        AuthResponse authResponse = authService.refreshToken(request.getRefreshToken());
+        return ResponseEntity.ok(ApiResponse.ok(authResponse));
+    }
+
     @Operation(summary = "카카오 로그인 URL", description = "카카오 로그인 인가 코드 요청 URL을 반환합니다.")
     @GetMapping("/kakao")
     public ResponseEntity<Void> kakaoLogin() {
@@ -88,5 +100,21 @@ public class AuthController {
     public ResponseEntity<ApiResponse<AuthResponse>> kakaoCallback(@RequestParam String code) {
         AuthResponse authResponse = kakaoAuthService.kakaoLogin(code);
         return ResponseEntity.ok(ApiResponse.ok(authResponse));
+    }
+
+    @Operation(summary = "배송주소 수정", description = "로그인된 사용자의 배송주소 정보를 수정합니다.")
+    @PutMapping("/me/address")
+    public ResponseEntity<ApiResponse<Void>> updateAddress(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @RequestBody UpdateAddressRequest request) {
+        authService.updateAddress(principal.getUserId(), request);
+        return ResponseEntity.ok(ApiResponse.ok(null));
+    }
+
+    @Operation(summary = "회원탈퇴", description = "로그인된 사용자의 계정을 삭제합니다.")
+    @DeleteMapping("/withdraw")
+    public ResponseEntity<ApiResponse<Void>> withdraw(@AuthenticationPrincipal UserPrincipal principal) {
+        authService.withdraw(principal.getUserId());
+        return ResponseEntity.ok(ApiResponse.ok(null));
     }
 }

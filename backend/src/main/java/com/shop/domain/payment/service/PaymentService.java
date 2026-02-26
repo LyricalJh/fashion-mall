@@ -88,7 +88,8 @@ public class PaymentService {
         Payment payment = paymentRepository.findByOrderOrderNumber(request.getOrderId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
 
-        if (payment.getPaymentAmount().compareTo(BigDecimal.valueOf(request.getAmount())) != 0) {
+        // Compare integer values to avoid BigDecimal scale mismatch (e.g., 50000.00 vs 50000)
+        if (payment.getPaymentAmount().intValue() != request.getAmount()) {
             throw new BusinessException(ErrorCode.PAYMENT_AMOUNT_MISMATCH);
         }
 

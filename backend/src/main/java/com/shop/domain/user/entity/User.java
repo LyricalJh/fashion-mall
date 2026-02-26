@@ -40,6 +40,32 @@ public class User extends BaseEntity {
     @Builder.Default
     private LoginType loginType = LoginType.LOCAL;
 
+    private String phone;
+
+    private String postcode;
+
+    private String address;
+
+    private String addressDetail;
+
+    @Column(length = 512)
+    private String kakaoAccessToken;
+
+    @Column(length = 512)
+    private String kakaoRefreshToken;
+
+    public void updateKakaoTokens(String kakaoAccessToken, String kakaoRefreshToken) {
+        this.kakaoAccessToken = kakaoAccessToken;
+        this.kakaoRefreshToken = kakaoRefreshToken;
+    }
+
+    public void updateAddress(String phone, String postcode, String address, String addressDetail) {
+        this.phone = phone;
+        this.postcode = postcode;
+        this.address = address;
+        this.addressDetail = addressDetail;
+    }
+
     public enum Role {
         ADMIN, USER
     }

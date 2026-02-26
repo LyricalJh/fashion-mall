@@ -141,7 +141,7 @@ function CartSelectionBar({ allSelected, selectedCount, onToggleAll, onDeleteSel
   )
 }
 
-function OrderSummaryPanel({ totalPrice, shippingFee, finalPrice }: { totalPrice: number; shippingFee: number; finalPrice: number }) {
+function OrderSummaryPanel({ totalPrice, shippingFee, finalPrice, checkoutState, disabled }: { totalPrice: number; shippingFee: number; finalPrice: number; checkoutState?: Record<string, unknown>; disabled?: boolean }) {
   return (
     <div className="flex flex-col gap-4 rounded-lg border border-gray-200 p-5">
       <h2 className="font-bold text-gray-900">주문 금액</h2>
@@ -160,12 +160,16 @@ function OrderSummaryPanel({ totalPrice, shippingFee, finalPrice }: { totalPrice
         <span className="text-sm font-bold text-gray-900">최종 결제금액</span>
         <span className="text-lg font-bold text-gray-900">{formatKRW(finalPrice)}</span>
       </div>
-      <Link to="/checkout" className="block rounded bg-gray-900 py-3 text-center text-sm font-bold text-white transition-colors hover:bg-gray-700">구매하기</Link>
+      {disabled ? (
+        <span className="block cursor-not-allowed rounded bg-gray-300 py-3 text-center text-sm font-bold text-white">구매하기</span>
+      ) : (
+        <Link to="/checkout" state={checkoutState} className="block rounded bg-gray-900 py-3 text-center text-sm font-bold text-white transition-colors hover:bg-gray-700">구매하기</Link>
+      )}
     </div>
   )
 }
 
-function MobileCheckoutBar({ finalPrice }: { finalPrice: number }) {
+function MobileCheckoutBar({ finalPrice, checkoutState, disabled }: { finalPrice: number; checkoutState?: Record<string, unknown>; disabled?: boolean }) {
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white px-4 py-3 md:hidden">
       <div className="flex items-center justify-between gap-4">
@@ -173,7 +177,11 @@ function MobileCheckoutBar({ finalPrice }: { finalPrice: number }) {
           <p className="text-xs text-gray-500">최종 결제금액</p>
           <p className="text-base font-bold text-gray-900">{formatKRW(finalPrice)}</p>
         </div>
-        <Link to="/checkout" className="shrink-0 rounded bg-gray-900 px-8 py-3 text-sm font-bold text-white transition-colors hover:bg-gray-700">구매하기</Link>
+        {disabled ? (
+          <span className="shrink-0 cursor-not-allowed rounded bg-gray-300 px-8 py-3 text-sm font-bold text-white">구매하기</span>
+        ) : (
+          <Link to="/checkout" state={checkoutState} className="shrink-0 rounded bg-gray-900 px-8 py-3 text-sm font-bold text-white transition-colors hover:bg-gray-700">구매하기</Link>
+        )}
       </div>
     </div>
   )
@@ -262,12 +270,12 @@ function ApiCartView() {
               </div>
             </div>
             <div className="hidden w-72 shrink-0 md:block lg:sticky lg:top-28">
-              <OrderSummaryPanel totalPrice={totalPrice} shippingFee={shippingFee} finalPrice={finalPrice} />
+              <OrderSummaryPanel totalPrice={totalPrice} shippingFee={shippingFee} finalPrice={finalPrice} checkoutState={{ selectedProductIds: [...selectedIds] }} disabled={selectedItems.length === 0} />
             </div>
           </div>
         )}
       </Container>
-      {apiItems.length > 0 && <MobileCheckoutBar finalPrice={finalPrice} />}
+      {apiItems.length > 0 && <MobileCheckoutBar finalPrice={finalPrice} checkoutState={{ selectedProductIds: [...selectedIds] }} disabled={selectedItems.length === 0} />}
     </>
   )
 }
@@ -318,12 +326,12 @@ function LocalCartView() {
               </div>
             </div>
             <div className="hidden w-72 shrink-0 md:block lg:sticky lg:top-28">
-              <OrderSummaryPanel totalPrice={totalPrice} shippingFee={shippingFee} finalPrice={finalPrice} />
+              <OrderSummaryPanel totalPrice={totalPrice} shippingFee={shippingFee} finalPrice={finalPrice} checkoutState={{ selectedLocalIds: selectedItems.map((it) => it.id) }} disabled={selectedItems.length === 0} />
             </div>
           </div>
         )}
       </Container>
-      {cartItems.length > 0 && <MobileCheckoutBar finalPrice={finalPrice} />}
+      {cartItems.length > 0 && <MobileCheckoutBar finalPrice={finalPrice} checkoutState={{ selectedLocalIds: selectedItems.map((it) => it.id) }} disabled={selectedItems.length === 0} />}
     </>
   )
 }

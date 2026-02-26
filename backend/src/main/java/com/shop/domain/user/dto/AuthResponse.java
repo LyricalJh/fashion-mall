@@ -18,4 +18,8 @@ public class AuthResponse {
     private String email;
     private String name;
     private String role;
+    private String phone;
+    private String postcode;
+    private String address;
+    private String addressDetail;
 }

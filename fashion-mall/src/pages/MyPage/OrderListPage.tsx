@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useOrders } from '../../hooks/useOrders'
-import type { OrderSummaryResponse } from '../../types/api'
+import type { OrderSummaryResponse, OrderSummaryItemResponse } from '../../types/api'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -48,6 +48,27 @@ function filterByPeriod(orders: OrderSummaryResponse[], period: string): OrderSu
   return orders.filter((o) => new Date(o.createdAt).getFullYear() === year)
 }
 
+// ─── ItemRow ─────────────────────────────────────────────────────────────────
+
+function ItemRow({ item }: { item: OrderSummaryItemResponse }) {
+  return (
+    <div className="flex items-center gap-3">
+      <img
+        src={item.imageUrl ?? `https://picsum.photos/seed/${item.productId}/400/600`}
+        alt={item.productName}
+        className="h-16 w-12 shrink-0 rounded object-cover"
+      />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-gray-900">{item.productName}</p>
+        <p className="mt-1 text-xs text-gray-500">{fmtPrice(item.price)} · {item.quantity}개</p>
+      </div>
+      <span className="shrink-0 text-sm font-bold text-gray-900">
+        {fmtPrice(item.price * item.quantity)}
+      </span>
+    </div>
+  )
+}
+
 // ─── OrderCard ────────────────────────────────────────────────────────────────
 
 function OrderCard({ order }: { order: OrderSummaryResponse }) {
@@ -59,9 +80,14 @@ function OrderCard({ order }: { order: OrderSummaryResponse }) {
     <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
       {/* Card header */}
       <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
-        <span className="text-sm font-semibold text-gray-800">
-          {fmtOrderDate(order.createdAt)} 주문
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold text-gray-800">
+            {fmtOrderDate(order.createdAt)} 주문
+          </span>
+          <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ${color} ${bg}`}>
+            {korStatus}
+          </span>
+        </div>
         <button
           onClick={() => navigate(`/mypage/orders/${order.id}`)}
           className="flex items-center gap-0.5 text-xs text-gray-400 transition-colors hover:text-gray-700"
@@ -73,21 +99,19 @@ function OrderCard({ order }: { order: OrderSummaryResponse }) {
         </button>
       </div>
 
-      {/* Body */}
-      <div className="px-5 py-4">
-        <div className="flex items-center gap-2 mb-3">
-          <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ${color} ${bg}`}>
-            {korStatus}
-          </span>
-        </div>
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-gray-600">
-            <span className="font-medium text-gray-900">주문번호 #{order.id}</span>
-            <span className="mx-2 text-gray-300">·</span>
-            <span>{order.itemCount}개 상품</span>
+      {/* Item list */}
+      <div className="flex flex-col divide-y divide-gray-100 px-5">
+        {(order.items ?? []).map((item) => (
+          <div key={item.productId} className="py-4">
+            <ItemRow item={item} />
           </div>
-          <span className="text-sm font-bold text-gray-900">{fmtPrice(order.totalPrice)}</span>
-        </div>
+        ))}
+      </div>
+
+      {/* Footer — total */}
+      <div className="flex items-center justify-end border-t border-gray-100 px-5 py-3">
+        <span className="text-xs text-gray-400 mr-2">총 결제금액</span>
+        <span className="text-sm font-bold text-gray-900">{fmtPrice(order.totalPrice)}</span>
       </div>
     </div>
   )

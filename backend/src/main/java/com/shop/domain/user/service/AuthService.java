@@ -3,6 +3,7 @@ package com.shop.domain.user.service;
 import com.shop.domain.user.dto.AuthResponse;
 import com.shop.domain.user.dto.LoginRequest;
 import com.shop.domain.user.dto.SignupRequest;
+import com.shop.domain.user.dto.UpdateAddressRequest;
 import com.shop.domain.user.entity.User;
 import com.shop.domain.user.repository.UserRepository;
 import com.shop.global.exception.BusinessException;
@@ -51,6 +52,31 @@ public class AuthService {
         return buildAuthResponse(user);
     }
 
+    @Transactional
+    public void withdraw(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        userRepository.delete(user);
+    }
+
+    @Transactional(readOnly = true)
+    public AuthResponse refreshToken(String refreshToken) {
+        if (!jwtUtil.validateToken(refreshToken)) {
+            throw new BusinessException(ErrorCode.INVALID_TOKEN);
+        }
+        Long userId = jwtUtil.getUserId(refreshToken);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        return buildAuthResponse(user);
+    }
+
+    @Transactional
+    public void updateAddress(Long userId, UpdateAddressRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        user.updateAddress(request.getPhone(), request.getPostcode(), request.getAddress(), request.getAddressDetail());
+    }
+
     private AuthResponse buildAuthResponse(User user) {
         String accessToken = jwtUtil.generateAccessToken(
                 user.getId(),
@@ -67,6 +93,10 @@ public class AuthService {
                 .email(user.getEmail())
                 .name(user.getName())
                 .role(user.getRole().name())
+                .phone(user.getPhone())
+                .postcode(user.getPostcode())
+                .address(user.getAddress())
+                .addressDetail(user.getAddressDetail())
                 .build();
     }
 }

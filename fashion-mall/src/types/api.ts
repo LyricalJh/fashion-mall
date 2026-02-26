@@ -70,6 +70,10 @@ export interface AuthResponse {
   email: string
   name: string
   role: string
+  phone?: string
+  postcode?: string
+  address?: string
+  addressDetail?: string
 }
 
 export interface OrderItemResponse {
@@ -81,6 +85,14 @@ export interface OrderItemResponse {
   subtotal: number
 }
 
+export interface OrderSummaryItemResponse {
+  productId: number
+  productName: string
+  imageUrl?: string
+  quantity: number
+  price: number
+}
+
 export interface OrderSummaryResponse {
   id: number
   totalPrice: number
@@ -88,6 +100,7 @@ export interface OrderSummaryResponse {
   itemCount: number
   createdAt: string // ISO 8601
   orderNumber?: string
+  items: OrderSummaryItemResponse[]
 }
 
 export interface OrderPage {

@@ -19,6 +19,7 @@ public class KakaoUserResponse {
     public static class KakaoAccount {
         private Profile profile;
         private String email;
+        private String phoneNumber;
 
         @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
         @Getter

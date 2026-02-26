@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { loadTossPayments } from '@tosspayments/tosspayments-sdk'
 import Container from '../components/ui/Container'
 import { useStore } from '../store/useStore'
@@ -16,13 +16,6 @@ const ACTIVE_STEP = 2
 
 const FREE_SHIPPING_THRESHOLD = 50_000
 const SHIPPING_FEE = 3_000
-
-const PAYMENT_METHODS = [
-  { id: 'card',  label: '신용/체크카드' },
-  { id: 'kakao', label: '카카오페이' },
-  { id: 'naver', label: '네이버페이' },
-  { id: 'bank',  label: '무통장 입금' },
-] as const
 
 const DELIVERY_MEMOS = [
   '배송 메모를 선택해 주세요',
@@ -155,36 +148,41 @@ function OrderSummaryPanel({ orderItems, totalPrice, shippingFee, finalPrice, on
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function CheckoutPage() {
-  const navigate = useNavigate()
   const location = useLocation()
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn)
   const user = useAuthStore((s) => s.user)
   const { cartItems, clearCart } = useStore()
   const { cart, mutate: mutateCart } = useCart()
 
-  const directItem = (location.state as { directItem?: CartItem } | null)?.directItem
+  const locState = location.state as { directItem?: CartItem; selectedProductIds?: number[]; selectedLocalIds?: string[] } | null
+  const directItem = locState?.directItem
 
-  // Determine order items based on login state
-  const orderItems: CartItem[] = (() => {
+  // Snapshot order items once so that cart mutations during checkout don't clear the list
+  const [orderItems] = useState<CartItem[]>(() => {
     if (directItem) return [directItem]
     if (isLoggedIn && cart) {
-      const apiItems = cart.items.map(apiItemToCartItem)
-      return apiItems.length > 0 ? apiItems : []
+      const selectedIds = locState?.selectedProductIds
+      const items = selectedIds
+        ? cart.items.filter((i) => selectedIds.includes(i.id))
+        : cart.items
+      return items.map(apiItemToCartItem)
     }
-    const selected = cartItems.filter((it) => it.selected)
-    return selected.length > 0 ? selected : cartItems
-  })()
+    const selectedIds = locState?.selectedLocalIds
+    if (selectedIds) {
+      return cartItems.filter((it) => selectedIds.includes(it.id))
+    }
+    return cartItems.filter((it) => it.selected)
+  })
 
   const [form, setForm] = useState({
-    name: '',
-    phone: '',
-    postcode: '',
-    address: '',
-    addressDetail: '',
+    name: user?.name ?? '',
+    phone: user?.phone ?? '',
+    postcode: user?.postcode ?? '',
+    address: user?.address ?? '',
+    addressDetail: user?.addressDetail ?? '',
     deliveryMemo: DELIVERY_MEMOS[0],
   })
   const [customMemo, setCustomMemo] = useState('')
-  const [payment, setPayment] = useState<string | null>(null)
   const [errors, setErrors] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
 
@@ -196,22 +194,14 @@ export default function CheckoutPage() {
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
       setForm((prev) => ({ ...prev, [key]: e.target.value }))
 
-  const mapPaymentMethod = (method: string): string => {
-    switch (method) {
-      case 'card': case 'kakao': case 'naver': return 'CARD'
-      case 'bank': return 'TRANSFER'
-      default: return 'CARD'
-    }
-  }
-
   const requestTossPayment = async (orderId: string, amount: number, orderName: string, customerKey: string) => {
     const clientKey = import.meta.env.VITE_TOSS_CLIENT_KEY as string
     const tossPayments = await loadTossPayments(clientKey)
     const tossPayment = tossPayments.payment({ customerKey })
 
     await tossPayment.requestPayment({
-      method: mapPaymentMethod(payment!),
-      amount: { currency: 'KRW', value: amount },
+      method: 'CARD',
+      amount: { currency: 'KRW', value: Math.floor(amount) },
       orderId,
       orderName,
       successUrl: `${window.location.origin}/payment/success`,
@@ -224,40 +214,44 @@ export default function CheckoutPage() {
 
   const handleSubmit = async () => {
     const errs: string[] = []
+    if (orderItems.length === 0) errs.push('주문할 상품이 없습니다.')
     if (!form.name.trim())    errs.push('수령인을 입력해 주세요.')
     if (!form.phone.trim())   errs.push('연락처를 입력해 주세요.')
     if (!form.address.trim()) errs.push('주소를 입력해 주세요.')
-    if (!payment)             errs.push('결제 수단을 선택해 주세요.')
     if (errs.length > 0) { setErrors(errs); return }
     setErrors([])
 
     setSubmitting(true)
 
-    if (isLoggedIn && !directItem && cart && cart.items.length > 0) {
-      // API order submission
+    if (isLoggedIn) {
+      // Logged-in user: create order via API (both cart and direct buy)
       try {
+        const items = directItem
+          ? [{ productId: Number(directItem.id), quantity: directItem.quantity }]
+          : orderItems.map((i) => ({ productId: Number(i.id), quantity: i.quantity }))
+
         const body: CreateOrderRequest = {
-          items: cart.items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+          items,
           shippingAddress: `${form.address} ${form.addressDetail}`.trim(),
           receiverName: form.name,
           receiverPhone: form.phone,
+          shippingMemo: form.deliveryMemo === '직접 입력' ? customMemo : form.deliveryMemo !== DELIVERY_MEMOS[0] ? form.deliveryMemo : undefined,
         }
         const order = await apiPost<OrderResponse>('/orders', body)
-        await mutateCart()
+        if (!directItem) await mutateCart()
 
         const orderId = order.orderNumber ?? `ORD${order.id}`
         const customerKey = `customer_${user!.userId}`
-        await requestTossPayment(orderId, order.totalPrice, `주문 ${orderId}`, customerKey)
+        await requestTossPayment(orderId, Math.floor(order.totalPrice), `주문 ${orderId}`, customerKey)
       } catch (err) {
         setErrors([err instanceof Error ? err.message : '주문 처리에 실패했습니다.'])
         setSubmitting(false)
       }
     } else {
-      // Local / direct buy order (guest or direct buy)
+      // Guest order: no DB record, Toss PG only
       try {
         const orderId = `ORD${Date.now()}`
-        const customerKey = `ANONYMOUS`
-        await requestTossPayment(orderId, finalPrice, `주문 ${orderId}`, customerKey)
+        await requestTossPayment(orderId, finalPrice, `주문 ${orderId}`, `guest_${Date.now()}`)
         if (!directItem) clearCart()
       } catch (err) {
         setErrors([err instanceof Error ? err.message : '결제 처리에 실패했습니다.'])
@@ -309,22 +303,6 @@ export default function CheckoutPage() {
                     <textarea value={customMemo} onChange={(e) => setCustomMemo(e.target.value)} placeholder="배송 메모를 입력해 주세요" rows={2} className="mt-1 rounded border border-gray-300 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900 resize-none" />
                   )}
                 </label>
-              </div>
-            </section>
-
-            {/* 결제 수단 */}
-            <section>
-              <SectionHeading>결제 수단</SectionHeading>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {PAYMENT_METHODS.map((m) => (
-                  <button
-                    key={m.id}
-                    onClick={() => setPayment(m.id)}
-                    className={`rounded-lg border py-3 text-sm font-medium transition-colors ${payment === m.id ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-200 text-gray-700 hover:border-gray-400'}`}
-                  >
-                    {m.label}
-                  </button>
-                ))}
               </div>
             </section>
 

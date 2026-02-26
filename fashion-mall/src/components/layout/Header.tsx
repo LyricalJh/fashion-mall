@@ -1,10 +1,15 @@
 import { Link } from 'react-router-dom'
 import { useStore } from '../../store/useStore'
+import { useAuthStore } from '../../store/authStore'
+import { useCart } from '../../hooks/useCart'
 import Container from '../ui/Container'
 import IconButton from '../ui/IconButton'
 
 export default function Header() {
-  const cartCount = useStore((s) => s.cartItems.reduce((sum, it) => sum + it.quantity, 0))
+  const localCartCount = useStore((s) => s.cartItems.reduce((sum, it) => sum + it.quantity, 0))
+  const isLoggedIn = useAuthStore((s) => s.isLoggedIn)
+  const { cart } = useCart()
+  const cartCount = isLoggedIn ? (cart?.totalCount ?? 0) : localCartCount
 
   return (
     <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/95 backdrop-blur-sm">

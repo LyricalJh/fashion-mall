@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
+import { mergeLocalCartToServer } from '../lib/cartMerge'
 import type { ApiResponse, AuthResponse } from '../types/api'
 
 const API_URL = import.meta.env.VITE_API_URL as string
@@ -33,10 +34,14 @@ export default function KakaoCallbackPage() {
 
         const data = json.data
         loginStore(
-          { userId: data.userId, email: data.email, name: data.name, role: data.role },
+          {
+            userId: data.userId, email: data.email, name: data.name, role: data.role,
+            phone: data.phone, postcode: data.postcode, address: data.address, addressDetail: data.addressDetail,
+          },
           data.accessToken,
           data.refreshToken,
         )
+        await mergeLocalCartToServer()
         navigate('/', { replace: true })
       } catch {
         setError('카카오 로그인 처리 중 오류가 발생했습니다.')

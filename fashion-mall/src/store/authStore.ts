@@ -6,6 +6,10 @@ export interface AuthUser {
   email: string
   name: string
   role: string
+  phone?: string
+  postcode?: string
+  address?: string
+  addressDetail?: string
 }
 
 interface AuthState {

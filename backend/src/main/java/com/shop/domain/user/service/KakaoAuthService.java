@@ -1,6 +1,7 @@
 package com.shop.domain.user.service;
 
 import com.shop.domain.user.dto.AuthResponse;
+import com.shop.domain.user.dto.KakaoShippingAddressResponse;
 import com.shop.domain.user.dto.KakaoTokenResponse;
 import com.shop.domain.user.dto.KakaoUserResponse;
 import com.shop.domain.user.entity.LoginType;
@@ -30,6 +31,7 @@ public class KakaoAuthService {
 
     private static final String KAKAO_TOKEN_URL = "https://kauth.kakao.com/oauth/token";
     private static final String KAKAO_USER_INFO_URL = "https://kapi.kakao.com/v2/user/me";
+    private static final String KAKAO_SHIPPING_URL = "https://kapi.kakao.com/v1/user/shipping_address";
 
     private final KakaoProperties kakaoProperties;
     private final RestTemplate restTemplate;
@@ -84,6 +86,21 @@ public class KakaoAuthService {
         }
     }
 
+    public KakaoShippingAddressResponse getShippingAddresses(String kakaoAccessToken) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(kakaoAccessToken);
+        HttpEntity<Void> request = new HttpEntity<>(headers);
+        try {
+            ResponseEntity<KakaoShippingAddressResponse> response = restTemplate.exchange(
+                    KAKAO_SHIPPING_URL, HttpMethod.GET, request, KakaoShippingAddressResponse.class
+            );
+            return response.getBody();
+        } catch (RestClientException e) {
+            log.warn("Failed to get Kakao shipping addresses: {}", e.getMessage());
+            return null; // non-fatal, just skip
+        }
+    }
+
     @Transactional
     public AuthResponse kakaoLogin(String code) {
         KakaoTokenResponse tokenResponse = getKakaoToken(code);
@@ -92,6 +109,30 @@ public class KakaoAuthService {
         User user = userRepository.findByKakaoId(userInfo.getId())
                 .orElseGet(() -> createKakaoUser(userInfo));
 
+        // Save kakao tokens
+        user.updateKakaoTokens(tokenResponse.getAccessToken(), tokenResponse.getRefreshToken());
+
+        // Fetch shipping address if user has no address yet
+        if (user.getAddress() == null || user.getAddress().isBlank()) {
+            try {
+                KakaoShippingAddressResponse shippingResponse = getShippingAddresses(tokenResponse.getAccessToken());
+                if (shippingResponse != null && shippingResponse.getShippingAddresses() != null) {
+                    shippingResponse.getShippingAddresses().stream()
+                            .filter(addr -> Boolean.TRUE.equals(addr.getIsDefault()))
+                            .findFirst()
+                            .ifPresent(addr -> user.updateAddress(
+                                    addr.getReceiverPhoneNumber1(),
+                                    addr.getZoneNumber(),
+                                    addr.getBaseAddress(),
+                                    addr.getDetailAddress()
+                            ));
+                }
+            } catch (Exception e) {
+                log.warn("Failed to fetch shipping address from Kakao: {}", e.getMessage());
+            }
+        }
+
+        userRepository.save(user);
         return buildAuthResponse(user);
     }
 
@@ -99,9 +140,11 @@ public class KakaoAuthService {
         String nickname = "kakao_user";
         String profileImageUrl = null;
         String email = null;
+        String phoneNumber = null;
 
         if (userInfo.getKakaoAccount() != null) {
             email = userInfo.getKakaoAccount().getEmail();
+            phoneNumber = userInfo.getKakaoAccount().getPhoneNumber();
             if (userInfo.getKakaoAccount().getProfile() != null) {
                 nickname = userInfo.getKakaoAccount().getProfile().getNickname();
                 profileImageUrl = userInfo.getKakaoAccount().getProfile().getProfileImageUrl();
@@ -128,6 +171,7 @@ public class KakaoAuthService {
                 .kakaoId(userInfo.getId())
                 .profileImageUrl(profileImageUrl)
                 .loginType(LoginType.KAKAO)
+                .phone(phoneNumber)
                 .build();
 
         return userRepository.save(user);
@@ -149,6 +193,10 @@ public class KakaoAuthService {
                 .email(user.getEmail())
                 .name(user.getName())
                 .role(user.getRole().name())
+                .phone(user.getPhone())
+                .postcode(user.getPostcode())
+                .address(user.getAddress())
+                .addressDetail(user.getAddressDetail())
                 .build();
     }
 
@@ -156,6 +204,7 @@ public class KakaoAuthService {
         return "https://kauth.kakao.com/oauth/authorize"
                 + "?client_id=" + kakaoProperties.getRestApiKey()
                 + "&redirect_uri=" + kakaoProperties.getRedirectUri()
-                + "&response_type=code";
+                + "&response_type=code"
+                + "&scope=shipping_address";
     }
 }

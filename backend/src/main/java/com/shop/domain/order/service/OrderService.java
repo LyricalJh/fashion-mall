@@ -26,7 +26,10 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -118,11 +121,29 @@ public class OrderService {
 
     /**
      * 주문 목록 조회 - 최신순 페이징
+     * 1) 페이징으로 Order ID만 조회
+     * 2) 해당 ID들로 items + product fetch join (N+1 방지)
+     * 3) Page 구조 유지하면서 OrderSummaryResponse 매핑
      */
     @Transactional(readOnly = true)
     public Page<OrderSummaryResponse> getOrders(Long userId, Pageable pageable) {
-        return orderRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable)
-                .map(OrderSummaryResponse::from);
+        Page<Order> page = orderRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
+
+        List<Long> orderIds = page.getContent().stream()
+                .map(Order::getId)
+                .toList();
+
+        if (orderIds.isEmpty()) {
+            return page.map(OrderSummaryResponse::from);
+        }
+
+        // fetch join으로 items + product 한번에 로드
+        Map<Long, Order> ordersWithItems = orderRepository.findAllWithItemsByIdIn(orderIds).stream()
+                .collect(Collectors.toMap(Order::getId, Function.identity()));
+
+        return page.map(order -> OrderSummaryResponse.from(
+                ordersWithItems.getOrDefault(order.getId(), order)
+        ));
     }
 
     /**

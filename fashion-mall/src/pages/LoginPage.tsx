@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import { login as apiLogin, signup as apiSignup } from '../lib/auth'
+import { mergeLocalCartToServer } from '../lib/cartMerge'
 
 type Mode = 'social' | 'login' | 'signup'
 
@@ -43,10 +44,14 @@ export default function LoginPage() {
     try {
       const res = await apiLogin(email, password)
       loginStore(
-        { userId: res.userId, email: res.email, name: res.name, role: res.role },
+        {
+          userId: res.userId, email: res.email, name: res.name, role: res.role,
+          phone: res.phone, postcode: res.postcode, address: res.address, addressDetail: res.addressDetail,
+        },
         res.accessToken,
         res.refreshToken,
       )
+      await mergeLocalCartToServer()
       navigate(from, { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : '로그인에 실패했습니다.')
@@ -62,10 +67,14 @@ export default function LoginPage() {
     try {
       const res = await apiSignup(email, password, name)
       loginStore(
-        { userId: res.userId, email: res.email, name: res.name, role: res.role },
+        {
+          userId: res.userId, email: res.email, name: res.name, role: res.role,
+          phone: res.phone, postcode: res.postcode, address: res.address, addressDetail: res.addressDetail,
+        },
         res.accessToken,
         res.refreshToken,
       )
+      await mergeLocalCartToServer()
       navigate(from, { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : '회원가입에 실패했습니다.')

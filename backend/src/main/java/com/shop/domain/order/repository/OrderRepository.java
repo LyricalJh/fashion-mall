@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface OrderRepository extends JpaRepository<Order, Long> {
@@ -17,9 +18,19 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     Optional<Order> findByIdAndUserId(Long orderId, Long userId);
 
     /**
-     * 사용자별 주문 목록 - 최신순 페이징
+     * 사용자별 주문 ID 페이징 (가벼운 쿼리)
      */
     Page<Order> findByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
+
+    /**
+     * 주문 ID 목록으로 items + product fetch join (N+1 방지)
+     */
+    @Query("SELECT DISTINCT o FROM Order o " +
+           "LEFT JOIN FETCH o.items i " +
+           "LEFT JOIN FETCH i.product " +
+           "WHERE o.id IN :ids " +
+           "ORDER BY o.createdAt DESC")
+    List<Order> findAllWithItemsByIdIn(@Param("ids") List<Long> ids);
 
     /**
      * 주문 상세 조회 - OrderItem 및 Product Fetch Join (N+1 방지)
