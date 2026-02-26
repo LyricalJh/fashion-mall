@@ -32,7 +32,7 @@ jwt:
 kakao:
   rest-api-key: ${KAKAO_REST_API_KEY:9165aeef6adef1aae6a235f1978a731d}
   client-secret: ${KAKAO_CLIENT_SECRET:KWAsQkNMtz32IzvbTtxcEMAy4pc0Mp7W}
-  redirect-uri: ${KAKAO_REDIRECT_URI:http://localhost:5174/auth/kakao/callback}
+  redirect-uri: ${KAKAO_REDIRECT_URI:http://localhost:5173/auth/kakao/callback}
 
 toss:
   payments:

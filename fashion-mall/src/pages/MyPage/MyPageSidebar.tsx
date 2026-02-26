@@ -1,4 +1,5 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
+import { useAuthStore } from '../../store/authStore'
 
 const navGroups = [
   {
@@ -30,6 +31,14 @@ interface Props {
 }
 
 export default function MyPageSidebar({ mobile = false }: Props) {
+  const logout = useAuthStore((s) => s.logout)
+  const navigate = useNavigate()
+
+  const handleLogout = () => {
+    logout()
+    navigate('/', { replace: true })
+  }
+
   if (mobile) {
     return (
       <div className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
@@ -65,6 +74,17 @@ export default function MyPageSidebar({ mobile = false }: Props) {
             ))}
           </div>
         ))}
+        <button
+          onClick={handleLogout}
+          className="flex w-full items-center justify-between border-t border-gray-200 px-4 py-3.5 text-sm text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-700"
+        >
+          로그아웃
+          <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+        </button>
       </div>
     )
   }
@@ -94,6 +114,19 @@ export default function MyPageSidebar({ mobile = false }: Props) {
           </ul>
         </div>
       ))}
+      <div className="mt-6 border-t border-gray-200 pt-4">
+        <button
+          onClick={handleLogout}
+          className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
+        >
+          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+          로그아웃
+        </button>
+      </div>
     </nav>
   )
 }
