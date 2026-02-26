@@ -145,7 +145,7 @@ function CouponCard({ coupon }: { coupon: Coupon }) {
 export default function CouponPage() {
   const [filter, setFilter] = useState<FilterKey>('ALL')
 
-  const { coupons, isLoading } = useCoupons()
+  const { coupons, isLoading, error } = useCoupons()
 
   const filtered = useMemo(() => filterCoupons(coupons, filter), [coupons, filter])
 
@@ -155,6 +155,14 @@ export default function CouponPage() {
     return (
       <div className="py-20 text-center">
         <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-gray-900" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-xl border border-dashed border-red-200 bg-red-50 py-12 text-center">
+        <p className="text-sm text-red-500">쿠폰 목록을 불러오는 데 실패했습니다.</p>
       </div>
     )
   }

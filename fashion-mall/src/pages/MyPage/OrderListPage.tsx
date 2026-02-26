@@ -5,13 +5,15 @@ import type { OrderSummaryResponse, OrderSummaryItemResponse } from '../../types
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-type KoreanStatus = '결제완료' | '배송중' | '배송완료' | '취소'
+type KoreanStatus = '결제대기' | '주문확인' | '결제완료' | '배송중' | '배송완료' | '취소'
 
 function toKoreanStatus(status: string): KoreanStatus {
+  if (status === 'PENDING') return '결제대기'
+  if (status === 'CONFIRMED') return '주문확인'
   if (status === 'SHIPPING') return '배송중'
   if (status === 'DELIVERED') return '배송완료'
   if (status === 'CANCELLED') return '취소'
-  return '결제완료' // PENDING | PAID
+  return '결제완료' // PAID
 }
 
 /** ISO string → "2026. 2. 20" */
@@ -28,9 +30,11 @@ function fmtPrice(n: number): string {
 // ─── Status config ────────────────────────────────────────────────────────────
 
 const STATUS_CFG: Record<KoreanStatus, { color: string; bg: string }> = {
-  배송완료: { color: 'text-emerald-700', bg: 'bg-emerald-50' },
-  배송중:   { color: 'text-blue-700',    bg: 'bg-blue-50'    },
+  결제대기: { color: 'text-amber-700',   bg: 'bg-amber-50'   },
+  주문확인: { color: 'text-gray-700',    bg: 'bg-gray-100'   },
   결제완료: { color: 'text-gray-700',    bg: 'bg-gray-100'   },
+  배송중:   { color: 'text-blue-700',    bg: 'bg-blue-50'    },
+  배송완료: { color: 'text-emerald-700', bg: 'bg-emerald-50' },
   취소:     { color: 'text-red-600',     bg: 'bg-red-50'     },
 }
 

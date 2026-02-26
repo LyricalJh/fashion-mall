@@ -6,7 +6,7 @@ const navGroups = [
     title: 'MY 쇼핑',
     items: [
       { label: '주문목록/배송조회', to: '/mypage/orders' },
-      { label: '취소/반품/교환/환불 내역', to: '/mypage/returns' },
+      { label: '취소/반품 내역', to: '/mypage/returns' },
     ],
   },
   {

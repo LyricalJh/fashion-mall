@@ -1,13 +1,16 @@
 import { useParams, Link } from 'react-router-dom'
+import { useSWRConfig } from 'swr'
 import { useOrder, cancelOrder } from '../../hooks/useOrders'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function toKoreanStatus(status: string): string {
+  if (status === 'PENDING') return '결제대기'
+  if (status === 'CONFIRMED') return '주문확인'
   if (status === 'SHIPPING') return '배송중'
   if (status === 'DELIVERED') return '배송완료'
   if (status === 'CANCELLED') return '취소'
-  return '결제완료' // PENDING | PAID
+  return '결제완료' // PAID
 }
 
 function fmtDate(iso: string): string {
@@ -20,9 +23,11 @@ function fmtPrice(n: number): string {
 }
 
 const STATUS_COLOR: Record<string, string> = {
-  배송완료: 'text-emerald-700 bg-emerald-50',
-  배송중:   'text-blue-700 bg-blue-50',
+  결제대기: 'text-amber-700 bg-amber-50',
+  주문확인: 'text-gray-700 bg-gray-100',
   결제완료: 'text-gray-700 bg-gray-100',
+  배송중:   'text-blue-700 bg-blue-50',
+  배송완료: 'text-emerald-700 bg-emerald-50',
   취소:     'text-red-600 bg-red-50',
 }
 
@@ -32,6 +37,7 @@ export default function OrderDetailPage() {
   const { orderId } = useParams()
   const id = orderId ? parseInt(orderId, 10) : null
   const { order, isLoading, error } = useOrder(id)
+  const { mutate } = useSWRConfig()
 
   if (isLoading) {
     return (
@@ -60,7 +66,8 @@ export default function OrderDetailPage() {
     if (!window.confirm('주문을 취소하시겠습니까?')) return
     try {
       await cancelOrder(order!.id)
-      window.location.reload()
+      await mutate(`/orders/${order!.id}`)
+      await mutate((key: string) => typeof key === 'string' && key.startsWith('/orders?'), undefined, { revalidate: true })
     } catch (err) {
       alert(err instanceof Error ? err.message : '취소 처리에 실패했습니다.')
     }

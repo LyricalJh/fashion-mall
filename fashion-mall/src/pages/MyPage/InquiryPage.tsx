@@ -6,7 +6,10 @@ import type { Inquiry, InquiryStatus, InquiryCategory } from '../../types/api'
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function fmtDate(s: string): string {
-  const [y, m, d] = s.split('-').map(Number)
+  const date = new Date(s)
+  const y = date.getFullYear()
+  const m = date.getMonth() + 1
+  const d = date.getDate()
   return `${y}.${String(m).padStart(2, '0')}.${String(d).padStart(2, '0')}`
 }
 
@@ -19,7 +22,7 @@ function toKoreanStatus(status: InquiryStatus): string {
 function toKoreanCategory(category: InquiryCategory): string {
   if (category === 'PRODUCT') return '상품문의'
   if (category === 'DELIVERY') return '배송문의'
-  if (category === 'EXCHANGE_RETURN') return '교환/반품'
+  if (category === 'EXCHANGE_RETURN') return '반품문의'
   if (category === 'PAYMENT') return '결제문의'
   return '기타'
 }
@@ -33,7 +36,7 @@ const STATUS_STYLES: Record<InquiryStatus, { badge: string }> = {
 const CATEGORY_OPTIONS: { value: InquiryCategory; label: string }[] = [
   { value: 'PRODUCT', label: '상품문의' },
   { value: 'DELIVERY', label: '배송문의' },
-  { value: 'EXCHANGE_RETURN', label: '교환/반품' },
+  { value: 'EXCHANGE_RETURN', label: '반품문의' },
   { value: 'PAYMENT', label: '결제문의' },
   { value: 'OTHER', label: '기타' },
 ]
@@ -255,7 +258,7 @@ function InquiryForm({ submitInquiry }: {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function InquiryPage() {
-  const { inquiries, isLoading, submitInquiry } = useInquiries()
+  const { inquiries, isLoading, error, submitInquiry } = useInquiries()
 
   const waitingCount = inquiries.filter((i) => i.status === 'PENDING').length
 
@@ -263,6 +266,14 @@ export default function InquiryPage() {
     return (
       <div className="py-20 text-center">
         <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-gray-900" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-xl border border-dashed border-red-200 bg-red-50 py-12 text-center">
+        <p className="text-sm text-red-500">문의 내역을 불러오는 데 실패했습니다.</p>
       </div>
     )
   }

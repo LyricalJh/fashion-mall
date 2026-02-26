@@ -203,3 +203,69 @@ export interface CreateAddressRequest {
   addressDetail?: string
   isDefault?: boolean
 }
+
+// ─── Claim ─────────────────────────────────────────────────────────────────
+
+export type ClaimType = 'CANCEL' | 'RETURN'
+export type ClaimStatus = 'RECEIVED' | 'PROCESSING' | 'PICKUP' | 'PICKED_UP' | 'COMPLETED' | 'REJECTED'
+
+export interface ClaimItemResponse {
+  id: number
+  orderItemId: number
+  productId: number
+  productName: string
+  quantity: number
+  priceAtOrder: number
+  subtotal: number
+  imageUrl: string | null
+}
+
+export interface ClaimResponse {
+  id: number
+  orderId: number
+  orderNumber: string
+  claimType: ClaimType
+  status: ClaimStatus
+  reason: string
+  note: string | null
+  refundAmount: number
+  refundMethod: string | null
+  bankName: string | null
+  accountNumber: string | null
+  completedAt: string | null
+  createdAt: string
+  items: ClaimItemResponse[]
+}
+
+export interface ClaimSummaryResponse {
+  id: number
+  orderId: number
+  orderNumber: string
+  claimType: ClaimType
+  status: ClaimStatus
+  reason: string
+  refundAmount: number
+  createdAt: string
+  itemCount: number
+  firstProductName: string | null
+  firstProductImageUrl: string | null
+  firstItemQuantity: number
+  firstItemPrice: number | null
+}
+
+export interface ClaimPage {
+  content: ClaimSummaryResponse[]
+  totalElements: number
+  totalPages: number
+  pageNumber: number
+  pageSize: number
+}
+
+export interface CreateClaimRequest {
+  orderId: number
+  claimType: ClaimType
+  reason: string
+  bankName?: string
+  accountNumber?: string
+  items: { orderItemId: number; quantity: number }[]
+}

@@ -97,7 +97,7 @@ function AddressCard({
 
 export default function AddressPage() {
   const navigate = useNavigate()
-  const { addresses, isLoading, removeAddress, setDefault } = useAddresses()
+  const { addresses, isLoading, error, removeAddress, setDefault } = useAddresses()
 
   const defaultAddr = addresses.find((a) => a.isDefault)
   const otherAddrs = addresses.filter((a) => !a.isDefault)
@@ -123,6 +123,14 @@ export default function AddressPage() {
     return (
       <div className="py-20 text-center">
         <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-gray-900" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-xl border border-dashed border-red-200 bg-red-50 py-12 text-center">
+        <p className="text-sm text-red-500">배송지 목록을 불러오는 데 실패했습니다.</p>
       </div>
     )
   }

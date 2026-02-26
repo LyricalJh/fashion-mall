@@ -1,5 +1,39 @@
 # Shop Project Changelog
 
+## [2026-02-26] - Claim Domain Implementation (v0.0.2)
+
+### Added
+- Claim domain (cancel/return) with 11 new backend files
+- ClaimType enum (CANCEL, RETURN) with distinct workflow support
+- ClaimStatus enum (RECEIVED, PROCESSING, PICKUP, PICKED_UP, COMPLETED, REJECTED)
+- 4 REST API endpoints for claim management (/api/claims GET/POST/GET{id}/DELETE{id})
+- ClaimService with refund, stock restoration, and duplicate prevention logic
+- N+1 optimized queries with fetch join and 2-query pagination pattern
+- CreateClaimRequest, ClaimResponse, ClaimItemResponse, ClaimSummaryResponse DTOs
+- Frontend useClaims() and useClaim() hooks with SWR caching
+- CancelReturnPage fully integrated with API (removed mock data)
+- ClaimDetailPage with status step visualization and withdraw functionality
+- 7 TypeScript type definitions for claim domain (ClaimType, ClaimStatus, ClaimResponse, etc.)
+
+### Changed
+- CancelReturnPage: Migrated from mock data to useClaims() API hook
+- CancelReturnPage: Removed 교환 (exchange) tab (Phase 1: cancel/return only)
+- ClaimDetailPage: Replaced placeholder content with full detail view
+- ErrorCode enum: Added CLAIM_NOT_FOUND error code
+
+### Fixed
+- (No gaps found - 100% design match rate on first implementation)
+
+### Technical Details
+- Design Match Rate: 100% (38/38 checkpoints)
+- Build Status: BUILD SUCCESSFUL (compileJava + tsc + npm build)
+- Transaction Safety: @Transactional on service methods
+- Validation: Jakarta Bean Validation on all DTOs
+- Price Safety: Refund amount uses immutable priceAtOrder from OrderItem
+- Auth: All endpoints require JWT; detail/delete endpoints verify owner
+
+---
+
 ## [2026-02-26] - Shop Feature Completion (v0.0.1)
 
 ### Added

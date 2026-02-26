@@ -15,7 +15,7 @@ interface UseOrderResult {
   error: Error | undefined
 }
 
-export function useOrders(page = 0, size = 50): UseOrdersResult {
+export function useOrders(page = 0, size = 20): UseOrdersResult {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn)
   const key = isLoggedIn ? `/orders?page=${page}&size=${size}` : null
 

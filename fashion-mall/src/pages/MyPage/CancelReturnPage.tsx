@@ -1,23 +1,14 @@
-import { useSearchParams, useNavigate } from 'react-router-dom'
-import {
-  MOCK_CLAIMS,
-  MOCK_BANK_REFUNDS,
-  type Claim,
-  type ClaimType,
-  type ClaimStatus,
-  type BankRefund,
-  type BankRefundStatus,
-} from '../../mock/claims'
+import { useNavigate } from 'react-router-dom'
+import { useClaims } from '../../hooks/useClaims'
+import type { ClaimSummaryResponse, ClaimType, ClaimStatus } from '../../types/api'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/** "YYYY-MM-DD" → "YYYY/M/D" */
-function fmtDate(s: string): string {
-  const [y, m, d] = s.split('-').map(Number)
-  return `${y}/${m}/${d}`
+function fmtDate(iso: string): string {
+  const d = new Date(iso)
+  return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`
 }
 
-/** 숫자 → "59,000원" */
 function fmtPrice(n: number): string {
   return n.toLocaleString('ko-KR') + '원'
 }
@@ -25,124 +16,121 @@ function fmtPrice(n: number): string {
 // ─── Status helpers ───────────────────────────────────────────────────────────
 
 function getClaimStatusLabel(claimType: ClaimType, status: ClaimStatus): string {
-  if (status === '취소완료') return '취소완료'
-  if (status === '환불완료') return claimType === '반품' ? '반품완료' : '환불완료'
-  if (status === '교환완료') return '교환완료'
-  if (status === '접수')    return `${claimType} 접수`
-  if (status === '처리중')  return `${claimType} 처리중`
-  if (status === '회수중')  return '회수 진행중'
-  if (status === '회수완료') return '회수완료'
-  if (status === '불가')    return '처리 불가'
-  return status
+  if (status === 'COMPLETED') {
+    return claimType === 'CANCEL' ? '취소완료' : '환불완료'
+  }
+  const typeLabel = claimType === 'CANCEL' ? '취소' : '반품'
+  const map: Record<ClaimStatus, string> = {
+    RECEIVED: `${typeLabel} 접수`,
+    PROCESSING: `${typeLabel} 처리중`,
+    PICKUP: '회수 진행중',
+    PICKED_UP: '회수완료',
+    COMPLETED: '완료',
+    REJECTED: '처리 불가',
+  }
+  return map[status] ?? status
 }
 
-const CLAIM_STATUS_COLOR: Record<ClaimStatus, string> = {
-  환불완료: 'text-emerald-600',
-  교환완료: 'text-emerald-600',
-  취소완료: 'text-emerald-600',
-  회수완료: 'text-emerald-600',
-  접수:     'text-blue-600',
-  처리중:   'text-blue-600',
-  회수중:   'text-orange-500',
-  불가:     'text-red-600',
-}
-
-const BANK_STATUS_COLOR: Record<BankRefundStatus, string> = {
-  환불완료: 'text-emerald-600',
-  접수:     'text-blue-600',
-  처리중:   'text-blue-600',
-  불가:     'text-red-600',
+function getStatusColor(status: ClaimStatus): string {
+  switch (status) {
+    case 'COMPLETED':
+    case 'PICKED_UP':
+      return 'text-emerald-600'
+    case 'RECEIVED':
+    case 'PROCESSING':
+      return 'text-blue-600'
+    case 'PICKUP':
+      return 'text-orange-500'
+    case 'REJECTED':
+      return 'text-red-600'
+    default:
+      return 'text-gray-600'
+  }
 }
 
 // ─── ClaimCard ────────────────────────────────────────────────────────────────
 
-function ClaimCard({ claim }: { claim: Claim }) {
+function ClaimCard({ claim }: { claim: ClaimSummaryResponse }) {
   const navigate = useNavigate()
-  const item = claim.items[0]
   const statusLabel = getClaimStatusLabel(claim.claimType, claim.status)
-  const statusColor = CLAIM_STATUS_COLOR[claim.status]
+  const statusColor = getStatusColor(claim.status)
+  const typeLabel = claim.claimType === 'CANCEL' ? '취소' : '반품'
+  const showPickupBtn = claim.claimType === 'RETURN'
 
-  const detailLabel = `${claim.claimType}상세`
-  const showPickupBtn = claim.claimType === '반품' || claim.claimType === '교환'
+  const displayName = claim.firstProductName
+    ? claim.itemCount > 1
+      ? `${claim.firstProductName} 외 ${claim.itemCount - 1}건`
+      : claim.firstProductName
+    : '상품 정보 없음'
 
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
       {/* Header bar */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 bg-gray-50 px-4 py-3 text-xs text-gray-600">
         <span>
-          <span className="font-medium text-gray-500">{claim.claimType}접수일</span>
+          <span className="font-medium text-gray-500">{typeLabel}접수일</span>
           {' : '}
-          {fmtDate(claim.receivedAt)}
-        </span>
-        <span className="hidden h-3 w-px bg-gray-300 sm:block" aria-hidden="true" />
-        <span>
-          <span className="font-medium text-gray-500">주문일</span>
-          {' : '}
-          {fmtDate(claim.orderedAt)}
+          {fmtDate(claim.createdAt)}
         </span>
         <span className="hidden h-3 w-px bg-gray-300 sm:block" aria-hidden="true" />
         <span>
           <span className="font-medium text-gray-500">주문번호</span>
           {' : '}
-          {claim.orderNo}
+          {claim.orderNumber}
         </span>
       </div>
 
       {/* Body */}
       <div className="px-4 py-4">
-        {/* Desktop: 3-col | Mobile: stacked */}
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:gap-4">
-
           {/* Left — product info */}
           <div className="flex min-w-0 flex-1 gap-3">
-            <img
-              src={item.thumbnailUrl}
-              alt={item.productName}
-              className="h-16 w-16 shrink-0 rounded-lg object-cover"
-            />
+            {claim.firstProductImageUrl ? (
+              <img
+                src={claim.firstProductImageUrl}
+                alt={claim.firstProductName ?? ''}
+                className="h-16 w-16 shrink-0 rounded-lg object-cover"
+              />
+            ) : (
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-400">
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" />
+                </svg>
+              </div>
+            )}
             <div className="min-w-0">
-              <p className="font-semibold text-gray-900 line-clamp-2">{item.productName}</p>
-              {item.productDesc && (
-                <p className="mt-0.5 text-xs text-gray-500 line-clamp-2">{item.productDesc}</p>
-              )}
+              <p className="font-semibold text-gray-900 line-clamp-2">{displayName}</p>
               {/* Mobile only: qty · price */}
               <p className="mt-1.5 text-sm text-gray-700 md:hidden">
-                {item.quantity}개
-                <span className="mx-1.5 text-gray-300">·</span>
-                <span className="font-semibold">{fmtPrice(item.price)}</span>
+                {claim.firstItemQuantity}개
+                {claim.firstItemPrice != null && (
+                  <>
+                    <span className="mx-1.5 text-gray-300">·</span>
+                    <span className="font-semibold">{fmtPrice(claim.firstItemPrice)}</span>
+                  </>
+                )}
               </p>
             </div>
           </div>
 
           {/* Center — qty/price (desktop only) */}
           <div className="hidden w-28 shrink-0 flex-col items-end gap-1 pt-0.5 md:flex">
-            <span className="text-sm text-gray-600">{item.quantity}개</span>
-            <span className="text-sm font-bold text-gray-900">{fmtPrice(item.price)}</span>
+            <span className="text-sm text-gray-600">{claim.firstItemQuantity}개</span>
+            {claim.refundAmount != null && (
+              <span className="text-sm font-bold text-gray-900">{fmtPrice(claim.refundAmount)}</span>
+            )}
           </div>
 
           {/* Right — status + buttons */}
           <div className="flex items-center justify-between gap-3 md:w-40 md:shrink-0 md:flex-col md:items-end md:pt-0.5">
-            {/* Status info */}
-            <div className="flex flex-col gap-0.5 md:items-end">
-              <span className={`text-sm font-bold ${statusColor}`}>{statusLabel}</span>
-              {claim.completeDueText && (
-                <span className="text-xs text-gray-500">{claim.completeDueText}</span>
-              )}
-              {claim.paymentMethod && (
-                <span className="text-xs text-gray-400">{claim.paymentMethod}</span>
-              )}
-              {claim.note && (
-                <span className="text-xs text-gray-400">{claim.note}</span>
-              )}
-            </div>
+            <span className={`text-sm font-bold ${statusColor}`}>{statusLabel}</span>
 
-            {/* Action buttons */}
             <div className="flex flex-row gap-2 md:flex-col">
               <button
-                onClick={() => navigate(`/mypage/returns/${claim.claimId}`)}
+                onClick={() => navigate(`/mypage/returns/${claim.id}`)}
                 className="min-h-[36px] rounded-lg border border-blue-500 px-3 py-1.5 text-xs font-medium text-blue-600 transition-colors hover:bg-blue-50"
               >
-                {detailLabel}
+                {typeLabel}상세
               </button>
               {showPickupBtn && (
                 <button
@@ -153,72 +141,6 @@ function ClaimCard({ claim }: { claim: Claim }) {
                 </button>
               )}
             </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ─── BankRefundCard ───────────────────────────────────────────────────────────
-
-function BankRefundCard({ refund }: { refund: BankRefund }) {
-  const statusColor = BANK_STATUS_COLOR[refund.status]
-
-  return (
-    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
-      {/* Header bar */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 bg-gray-50 px-4 py-3 text-xs text-gray-600">
-        <span>
-          <span className="font-medium text-gray-500">신청일</span>
-          {' : '}
-          {fmtDate(refund.requestedAt)}
-        </span>
-        {refund.orderNo && (
-          <>
-            <span className="hidden h-3 w-px bg-gray-300 sm:block" aria-hidden="true" />
-            <span>
-              <span className="font-medium text-gray-500">주문번호</span>
-              {' : '}
-              {refund.orderNo}
-            </span>
-          </>
-        )}
-      </div>
-
-      {/* Body */}
-      <div className="px-4 py-4">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
-
-          {/* Left — account info */}
-          <div className="min-w-0 flex-1">
-            <p className="font-semibold text-gray-900">무통장 환불 신청</p>
-            {refund.accountMasked && (
-              <p className="mt-0.5 text-sm text-gray-500">{refund.accountMasked}</p>
-            )}
-            {refund.memo && (
-              <p className="mt-0.5 text-xs text-gray-400">{refund.memo}</p>
-            )}
-            {/* Mobile: amount */}
-            <p className="mt-1.5 text-sm font-bold text-gray-900 md:hidden">
-              {fmtPrice(refund.amount)}
-            </p>
-          </div>
-
-          {/* Center — amount (desktop only) */}
-          <div className="hidden w-28 shrink-0 text-right md:block">
-            <span className="text-sm font-bold text-gray-900">{fmtPrice(refund.amount)}</span>
-          </div>
-
-          {/* Right — status + button */}
-          <div className="flex items-center justify-between gap-3 md:w-40 md:shrink-0 md:flex-col md:items-end">
-            <span className={`text-sm font-bold ${statusColor}`}>{refund.status}</span>
-            <button
-              onClick={() => alert('무통장환불 상세는 준비 중입니다.')}
-              className="min-h-[36px] rounded-lg border border-blue-500 px-3 py-1.5 text-xs font-medium text-blue-600 transition-colors hover:bg-blue-50"
-            >
-              상세보기
-            </button>
           </div>
         </div>
       </div>
@@ -248,47 +170,17 @@ function EmptyState({ label }: { label: string }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-type TabKey = 'claim' | 'bank'
-
 export default function CancelReturnPage() {
-  const [searchParams, setSearchParams] = useSearchParams()
-  const tab = (searchParams.get('tab') ?? 'claim') as TabKey
-
-  function setTab(t: TabKey) {
-    setSearchParams({ tab: t })
-  }
+  const { claims, isLoading, error } = useClaims()
 
   return (
     <div>
-      {/* Title */}
-      <h2 className="text-2xl font-bold text-gray-900">취소/반품/교환/환불 내역</h2>
-
-      {/* Tabs */}
-      <div className="mt-5 grid grid-cols-2 overflow-hidden rounded-xl border border-gray-200">
-        {(
-          [
-            { key: 'claim', label: '취소/반품/교환' },
-            { key: 'bank',  label: '무통장환불' },
-          ] as { key: TabKey; label: string }[]
-        ).map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => setTab(key)}
-            className={`py-3.5 text-center text-sm font-medium transition-colors ${
-              tab === key
-                ? 'border-t-2 border-blue-600 bg-white text-blue-600'
-                : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <h2 className="text-2xl font-bold text-gray-900">취소/반품 내역</h2>
 
       {/* Notice bar */}
       <div className="mt-4 flex flex-col gap-3 rounded-xl bg-gray-50 px-4 py-3.5 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1 text-xs leading-relaxed text-gray-600">
-          <p>취소/반품/교환 신청한 내역을 확인할 수 있습니다.</p>
+          <p>취소/반품 신청한 내역을 확인할 수 있습니다.</p>
           <p>
             하단 상품목록에 없는 상품은 1:1문의 또는{' '}
             <a
@@ -310,22 +202,19 @@ export default function CancelReturnPage() {
 
       {/* List */}
       <div className="mt-6 flex flex-col gap-4">
-        {tab === 'claim' ? (
-          MOCK_CLAIMS.length === 0 ? (
-            <EmptyState label="취소/반품/교환 내역이 없습니다." />
-          ) : (
-            MOCK_CLAIMS.map((claim) => (
-              <ClaimCard key={claim.claimId} claim={claim} />
-            ))
-          )
+        {isLoading ? (
+          <div className="py-20 text-center">
+            <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
+            <p className="mt-3 text-sm text-gray-400">불러오는 중...</p>
+          </div>
+        ) : error ? (
+          <div className="rounded-xl border border-red-200 bg-red-50 py-10 text-center">
+            <p className="text-sm text-red-600">데이터를 불러오지 못했습니다.</p>
+          </div>
+        ) : claims.length === 0 ? (
+          <EmptyState label="취소/반품 내역이 없습니다." />
         ) : (
-          MOCK_BANK_REFUNDS.length === 0 ? (
-            <EmptyState label="무통장환불 내역이 없습니다." />
-          ) : (
-            MOCK_BANK_REFUNDS.map((refund) => (
-              <BankRefundCard key={refund.refundId} refund={refund} />
-            ))
-          )
+          claims.map((claim) => <ClaimCard key={claim.id} claim={claim} />)
         )}
       </div>
     </div>

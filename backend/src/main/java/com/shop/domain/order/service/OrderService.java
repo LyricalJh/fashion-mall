@@ -1,6 +1,10 @@
 package com.shop.domain.order.service;
 
 import com.shop.domain.cart.service.CartService;
+import com.shop.domain.claim.entity.Claim;
+import com.shop.domain.claim.entity.ClaimItem;
+import com.shop.domain.claim.entity.ClaimType;
+import com.shop.domain.claim.repository.ClaimRepository;
 import com.shop.domain.order.dto.CreateOrderRequest;
 import com.shop.domain.order.dto.OrderResponse;
 import com.shop.domain.order.dto.OrderSummaryResponse;
@@ -41,6 +45,7 @@ public class OrderService {
     private final UserRepository userRepository;
     private final CartService cartService;
     private final PaymentRepository paymentRepository;
+    private final ClaimRepository claimRepository;
 
     /**
      * 주문 생성 - 재고 감소, 가격 스냅샷, 장바구니 정리를 @Transactional 내에서 원자적으로 처리
@@ -147,7 +152,7 @@ public class OrderService {
     }
 
     /**
-     * 주문 취소 - 소유자 검증, 상태 검증, 재고 복구를 @Transactional 내에서 원자적으로 처리
+     * 주문 취소 - 소유자 검증, 상태 검증, 재고 복구, 클레임 생성을 @Transactional 내에서 원자적으로 처리
      */
     public OrderResponse cancelOrder(Long userId, Long orderId) {
         // 소유자 검증
@@ -165,6 +170,40 @@ public class OrderService {
         for (OrderItem item : order.getItems()) {
             item.getProduct().increaseStock(item.getQuantity());
         }
+
+        // 결제 정보 조회 및 환불 처리
+        Payment payment = paymentRepository.findByOrderId(orderId).orElse(null);
+        if (payment != null) {
+            payment.refund();
+        }
+
+        // 취소/반품 이력에 표시되도록 Claim 레코드 생성
+        User user = userRepository.getReferenceById(userId);
+        String refundMethod = payment != null ? payment.getPaymentMethod().name() : "CARD";
+
+        Claim claim = Claim.builder()
+                .order(order)
+                .user(user)
+                .claimType(ClaimType.CANCEL)
+                .reason("주문 취소")
+                .refundAmount(order.getTotalPrice())
+                .refundMethod(refundMethod)
+                .build();
+
+        for (OrderItem item : order.getItems()) {
+            ClaimItem claimItem = ClaimItem.builder()
+                    .claim(claim)
+                    .orderItem(item)
+                    .quantity(item.getQuantity())
+                    .productName(item.getProductName())
+                    .build();
+            claim.addItem(claimItem);
+        }
+
+        // 즉시 완료 처리 (배송 전 취소이므로)
+        claim.complete();
+
+        claimRepository.save(claim);
 
         return OrderResponse.from(order);
     }
