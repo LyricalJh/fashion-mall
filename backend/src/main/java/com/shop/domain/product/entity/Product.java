@@ -46,6 +46,11 @@ public class Product extends BaseEntity {
 
     private String thumbnailUrl;
 
+    @Column(precision = 10, scale = 2)
+    private BigDecimal shippingFee = BigDecimal.ZERO;
+
+    private String shippingInfo;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ProductStatus status = ProductStatus.ACTIVE;

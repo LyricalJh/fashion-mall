@@ -42,8 +42,8 @@ class CartControllerTest {
     void setUp() throws Exception {
         // 카테고리, 상품 데이터 삽입
         jdbcTemplate.update(
-                "INSERT INTO categories (name, description, display_order, created_at, updated_at) " +
-                "VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+                "INSERT INTO categories (name, description, display_order, depth, created_at, updated_at) " +
+                "VALUES (?, ?, ?, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
                 "여성", "여성 카테고리", 1
         );
         categoryId = jdbcTemplate.queryForObject(
@@ -51,9 +51,9 @@ class CartControllerTest {
         );
 
         jdbcTemplate.update(
-                "INSERT INTO products (name, description, price, stock, category_id, deleted, created_at, updated_at) " +
-                "VALUES (?, ?, ?, ?, ?, false, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-                "테스트 상품", "테스트 상품 설명", 50000, 10, categoryId
+                "INSERT INTO products (name, description, price, stock, category_id, product_code, status, created_at, updated_at) " +
+                "VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+                "테스트 상품", "테스트 상품 설명", 50000, 10, categoryId, "TST-CART-001"
         );
         productId = jdbcTemplate.queryForObject(
                 "SELECT id FROM products WHERE name = ?", Long.class, "테스트 상품"

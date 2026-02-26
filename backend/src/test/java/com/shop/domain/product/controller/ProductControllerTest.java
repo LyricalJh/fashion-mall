@@ -31,8 +31,8 @@ class ProductControllerTest {
     @BeforeEach
     void setUp() {
         jdbcTemplate.update(
-                "INSERT INTO categories (name, description, display_order, created_at, updated_at) " +
-                "VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+                "INSERT INTO categories (name, description, display_order, depth, created_at, updated_at) " +
+                "VALUES (?, ?, ?, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
                 "여성", "여성 카테고리", 1
         );
         categoryId = jdbcTemplate.queryForObject(
@@ -41,21 +41,21 @@ class ProductControllerTest {
 
         // product 1 (expensive)
         jdbcTemplate.update(
-                "INSERT INTO products (name, description, price, stock, category_id, deleted, created_at, updated_at) " +
-                "VALUES (?, ?, ?, ?, ?, false, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-                "프리미엄 코트", "고급 울 소재 코트", 299000, 10, categoryId
+                "INSERT INTO products (name, description, price, stock, category_id, product_code, status, created_at, updated_at) " +
+                "VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+                "프리미엄 코트", "고급 울 소재 코트", 299000, 10, categoryId, "TST-PRD-001"
         );
         // product 2 (cheap)
         jdbcTemplate.update(
-                "INSERT INTO products (name, description, price, stock, category_id, deleted, created_at, updated_at) " +
-                "VALUES (?, ?, ?, ?, ?, false, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-                "베이직 티셔츠", "편안한 기본 티셔츠", 29000, 50, categoryId
+                "INSERT INTO products (name, description, price, stock, category_id, product_code, status, created_at, updated_at) " +
+                "VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+                "베이직 티셔츠", "편안한 기본 티셔츠", 29000, 50, categoryId, "TST-PRD-002"
         );
-        // product 3 (soft-deleted — should NOT appear in results)
+        // product 3 (inactive — should NOT appear in results)
         jdbcTemplate.update(
-                "INSERT INTO products (name, description, price, stock, category_id, deleted, created_at, updated_at) " +
-                "VALUES (?, ?, ?, ?, ?, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-                "삭제된 상품", "삭제 처리된 상품", 10000, 0, categoryId
+                "INSERT INTO products (name, description, price, stock, category_id, product_code, status, created_at, updated_at) " +
+                "VALUES (?, ?, ?, ?, ?, ?, 'INACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+                "삭제된 상품", "삭제 처리된 상품", 10000, 0, categoryId, "TST-PRD-003"
         );
 
         productId = jdbcTemplate.queryForObject(
@@ -81,17 +81,17 @@ class ProductControllerTest {
     void getProducts_filterByCategory() throws Exception {
         // insert another category + product to verify filtering
         jdbcTemplate.update(
-                "INSERT INTO categories (name, description, display_order, created_at, updated_at) " +
-                "VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+                "INSERT INTO categories (name, description, display_order, depth, created_at, updated_at) " +
+                "VALUES (?, ?, ?, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
                 "남성", "남성 카테고리", 2
         );
         Long otherCategoryId = jdbcTemplate.queryForObject(
                 "SELECT id FROM categories WHERE name = ?", Long.class, "남성"
         );
         jdbcTemplate.update(
-                "INSERT INTO products (name, description, price, stock, category_id, deleted, created_at, updated_at) " +
-                "VALUES (?, ?, ?, ?, ?, false, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-                "남성 재킷", "남성용 재킷", 150000, 20, otherCategoryId
+                "INSERT INTO products (name, description, price, stock, category_id, product_code, status, created_at, updated_at) " +
+                "VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+                "남성 재킷", "남성용 재킷", 150000, 20, otherCategoryId, "TST-PRD-004"
         );
 
         mockMvc.perform(get("/api/products").param("categoryId", String.valueOf(categoryId)))

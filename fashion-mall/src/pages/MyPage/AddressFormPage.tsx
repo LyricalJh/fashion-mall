@@ -1,32 +1,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import {
-  loadAddresses,
-  saveAddresses,
-  applyDefault,
-  generateAddressId,
-  formatPhone,
-  NORMAL_MEMO_OPTIONS,
-  DAWN_MEMO_OPTIONS,
-  type Address,
-} from '../../store/addressStore'
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const CUSTOM = '기타(직접입력)'
-const NONE   = '선택 안 함'
-
-function memoOptionOf(memo: string | undefined, options: readonly string[]): string {
-  if (!memo) return NONE
-  if (options.includes(memo as never)) return memo
-  return CUSTOM
-}
-
-function resolvedMemo(option: string, custom: string): string | undefined {
-  if (option === NONE)   return undefined
-  if (option === CUSTOM) return custom.trim() || undefined
-  return option
-}
+import { useAddresses } from '../../hooks/useAddresses'
+import { formatPhone } from '../../store/addressStore'
 
 // ─── InputRow ─────────────────────────────────────────────────────────────────
 
@@ -56,93 +31,67 @@ function InputRow({
 const inputCls =
   'w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900'
 
-const selectCls =
-  'w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 transition-colors focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900 bg-white'
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AddressFormPage() {
   const { addressId } = useParams<{ addressId: string }>()
   const navigate = useNavigate()
   const isEdit = Boolean(addressId)
+  const { addresses, addAddress, updateAddress } = useAddresses()
 
   // Load existing address for edit mode
-  const existing: Address | undefined = isEdit
-    ? loadAddresses().find((a) => a.addressId === addressId)
+  const existing = isEdit
+    ? addresses.find((a) => a.id === Number(addressId))
     : undefined
 
   // ── Form state ──
-  const [label,           setLabel]           = useState(existing?.label ?? '')
   const [receiverName,    setReceiverName]     = useState(existing?.receiverName ?? '')
-  const [phone,           setPhone]           = useState(existing?.phone ?? '')
+  const [receiverPhone,   setReceiverPhone]    = useState(existing?.receiverPhone ?? '')
   const [zipCode,         setZipCode]         = useState(existing?.zipCode ?? '')
-  const [address1,        setAddress1]        = useState(existing?.address1 ?? '')
-  const [address2,        setAddress2]        = useState(existing?.address2 ?? '')
-  const [normalOption,    setNormalOption]     = useState(
-    memoOptionOf(existing?.normalDeliveryMemo, NORMAL_MEMO_OPTIONS)
-  )
-  const [normalCustom,    setNormalCustom]     = useState(
-    normalOption === CUSTOM ? (existing?.normalDeliveryMemo ?? '') : ''
-  )
-  const [dawnOption,      setDawnOption]       = useState(
-    memoOptionOf(existing?.dawnDeliveryMemo, DAWN_MEMO_OPTIONS)
-  )
-  const [dawnCustom,      setDawnCustom]       = useState(
-    dawnOption === CUSTOM ? (existing?.dawnDeliveryMemo ?? '') : ''
-  )
+  const [address,         setAddress]         = useState(existing?.address ?? '')
+  const [addressDetail,   setAddressDetail]   = useState(existing?.addressDetail ?? '')
   const [isDefault,       setIsDefault]        = useState(existing?.isDefault ?? false)
   const [errors,          setErrors]           = useState<Partial<Record<string, string>>>({})
+  const [saving,          setSaving]           = useState(false)
 
   // ── Validate ──
   function validate(): boolean {
     const errs: Partial<Record<string, string>> = {}
-    if (!label.trim())        errs.label        = '배송지명을 입력해주세요.'
     if (!receiverName.trim()) errs.receiverName  = '받는 사람을 입력해주세요.'
-    if (!phone.trim())        errs.phone         = '휴대폰 번호를 입력해주세요.'
-    else if (phone.replace(/\D/g, '').length < 10) errs.phone = '올바른 번호를 입력해주세요.'
+    if (!receiverPhone.trim())        errs.receiverPhone         = '휴대폰 번호를 입력해주세요.'
+    else if (receiverPhone.replace(/\D/g, '').length < 10) errs.receiverPhone = '올바른 번호를 입력해주세요.'
     if (!zipCode.trim())      errs.zipCode       = '우편번호를 입력해주세요.'
-    if (!address1.trim())     errs.address1      = '주소를 입력해주세요.'
+    if (!address.trim())     errs.address      = '주소를 입력해주세요.'
     setErrors(errs)
     return Object.keys(errs).length === 0
   }
 
   // ── Save ──
-  function handleSave() {
-    if (!validate()) return
+  async function handleSave() {
+    if (!validate() || saving) return
+    setSaving(true)
 
-    const now = new Date().toISOString()
-    let addresses = loadAddresses()
-
-    const newAddress: Address = {
-      addressId:           isEdit ? (existing!.addressId) : generateAddressId(),
-      label:               label.trim(),
-      receiverName:        receiverName.trim(),
-      phone,
-      zipCode:             zipCode.trim(),
-      address1:            address1.trim(),
-      address2:            address2.trim(),
-      normalDeliveryMemo:  resolvedMemo(normalOption, normalCustom),
-      dawnDeliveryMemo:    resolvedMemo(dawnOption, dawnCustom),
+    const body = {
+      receiverName: receiverName.trim(),
+      receiverPhone,
+      zipCode: zipCode.trim(),
+      address: address.trim(),
+      addressDetail: addressDetail.trim(),
       isDefault,
-      createdAt:           isEdit ? existing!.createdAt : now,
-      updatedAt:           now,
     }
 
-    if (isEdit) {
-      addresses = addresses.map((a) => (a.addressId === newAddress.addressId ? newAddress : a))
-    } else {
-      // 첫 번째 배송지는 자동으로 기본배송지
-      if (addresses.length === 0) newAddress.isDefault = true
-      addresses = [...addresses, newAddress]
+    try {
+      if (isEdit && addressId) {
+        await updateAddress(Number(addressId), body)
+      } else {
+        await addAddress(body)
+      }
+      navigate('/mypage/address')
+    } catch {
+      alert('배송지 저장에 실패했습니다. 다시 시도해주세요.')
+    } finally {
+      setSaving(false)
     }
-
-    // 기본배송지 단일 보장
-    if (newAddress.isDefault) {
-      addresses = applyDefault(addresses, newAddress.addressId)
-    }
-
-    saveAddresses(addresses)
-    navigate('/mypage/address')
   }
 
   const pageTitle = isEdit ? '배송지 수정' : '배송지 추가'
@@ -166,16 +115,6 @@ export default function AddressFormPage() {
       {/* Form */}
       <div className="flex flex-col gap-4">
 
-        {/* 배송지명 */}
-        <InputRow label="배송지명" required error={errors.label}>
-          <input
-            className={inputCls}
-            placeholder="예: 집, 회사, 부모님댁"
-            value={label}
-            onChange={(e) => { setLabel(e.target.value); setErrors((p) => ({ ...p, label: undefined })) }}
-          />
-        </InputRow>
-
         {/* 받는 사람 */}
         <InputRow label="받는 사람" required error={errors.receiverName}>
           <input
@@ -186,8 +125,22 @@ export default function AddressFormPage() {
           />
         </InputRow>
 
+        {/* 휴대폰 번호 */}
+        <InputRow label="휴대폰 번호" required error={errors.receiverPhone}>
+          <input
+            className={inputCls}
+            placeholder="010-0000-0000"
+            inputMode="numeric"
+            value={receiverPhone}
+            onChange={(e) => {
+              setReceiverPhone(formatPhone(e.target.value))
+              setErrors((p) => ({ ...p, receiverPhone: undefined }))
+            }}
+          />
+        </InputRow>
+
         {/* 우편번호 + 주소 */}
-        <InputRow label="주소" required error={errors.zipCode || errors.address1}>
+        <InputRow label="주소" required error={errors.zipCode || errors.address}>
           <div className="flex gap-2">
             <input
               className={`${inputCls} w-32 shrink-0`}
@@ -212,71 +165,15 @@ export default function AddressFormPage() {
           <input
             className={inputCls}
             placeholder="기본 주소"
-            value={address1}
-            onChange={(e) => { setAddress1(e.target.value); setErrors((p) => ({ ...p, address1: undefined })) }}
+            value={address}
+            onChange={(e) => { setAddress(e.target.value); setErrors((p) => ({ ...p, address: undefined })) }}
           />
           <input
             className={inputCls}
             placeholder="상세 주소 (선택)"
-            value={address2}
-            onChange={(e) => setAddress2(e.target.value)}
+            value={addressDetail}
+            onChange={(e) => setAddressDetail(e.target.value)}
           />
-        </InputRow>
-
-        {/* 휴대폰 번호 */}
-        <InputRow label="휴대폰 번호" required error={errors.phone}>
-          <input
-            className={inputCls}
-            placeholder="010-0000-0000"
-            inputMode="numeric"
-            value={phone}
-            onChange={(e) => {
-              setPhone(formatPhone(e.target.value))
-              setErrors((p) => ({ ...p, phone: undefined }))
-            }}
-          />
-        </InputRow>
-
-        {/* 일반배송 정보 */}
-        <InputRow label="일반배송 정보">
-          <select
-            className={selectCls}
-            value={normalOption}
-            onChange={(e) => { setNormalOption(e.target.value); setNormalCustom('') }}
-          >
-            {NORMAL_MEMO_OPTIONS.map((o) => (
-              <option key={o} value={o}>{o}</option>
-            ))}
-          </select>
-          {normalOption === CUSTOM && (
-            <input
-              className={inputCls}
-              placeholder="직접 입력해주세요"
-              value={normalCustom}
-              onChange={(e) => setNormalCustom(e.target.value)}
-            />
-          )}
-        </InputRow>
-
-        {/* 새벽배송 정보 */}
-        <InputRow label="새벽배송 정보">
-          <select
-            className={selectCls}
-            value={dawnOption}
-            onChange={(e) => { setDawnOption(e.target.value); setDawnCustom('') }}
-          >
-            {DAWN_MEMO_OPTIONS.map((o) => (
-              <option key={o} value={o}>{o}</option>
-            ))}
-          </select>
-          {dawnOption === CUSTOM && (
-            <input
-              className={inputCls}
-              placeholder="직접 입력해주세요"
-              value={dawnCustom}
-              onChange={(e) => setDawnCustom(e.target.value)}
-            />
-          )}
         </InputRow>
 
         {/* 기본 배송지 */}
@@ -293,9 +190,10 @@ export default function AddressFormPage() {
         {/* Save button */}
         <button
           onClick={handleSave}
-          className="mt-2 w-full rounded-xl bg-blue-600 py-4 text-sm font-semibold text-white transition-colors hover:bg-blue-700 active:scale-[.99]"
+          disabled={saving}
+          className="mt-2 w-full rounded-xl bg-blue-600 py-4 text-sm font-semibold text-white transition-colors hover:bg-blue-700 active:scale-[.99] disabled:opacity-60"
         >
-          저장
+          {saving ? '저장 중...' : '저장'}
         </button>
       </div>
     </div>

@@ -23,6 +23,8 @@ public class ProductDetailResponse {
     private List<String> images;
     private String productCode;
     private String status;
+    private BigDecimal shippingFee;
+    private String shippingInfo;
 
     public static ProductDetailResponse from(Product product) {
         List<String> imageUrls = product.getImages().stream()
@@ -40,6 +42,8 @@ public class ProductDetailResponse {
                 .images(imageUrls)
                 .productCode(product.getProductCode())
                 .status(product.getStatus().name())
+                .shippingFee(product.getShippingFee())
+                .shippingInfo(product.getShippingInfo())
                 .build();
     }
 }

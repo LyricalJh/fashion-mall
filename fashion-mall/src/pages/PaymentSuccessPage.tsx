@@ -25,6 +25,8 @@ export default function PaymentSuccessPage() {
       return
     }
 
+    let cancelled = false
+
     const confirmPayment = async () => {
       try {
         await apiPost<PaymentConfirmResponse>('/payments/confirm', {
@@ -32,14 +34,18 @@ export default function PaymentSuccessPage() {
           orderId,
           amount: Number(amount),
         })
-        setStatus('success')
+        if (!cancelled) setStatus('success')
       } catch (err) {
-        setStatus('error')
-        setErrorMessage(err instanceof Error ? err.message : '결제 승인에 실패했습니다.')
+        if (!cancelled) {
+          setStatus('error')
+          setErrorMessage(err instanceof Error ? err.message : '결제 승인에 실패했습니다.')
+        }
       }
     }
 
     confirmPayment()
+
+    return () => { cancelled = true }
   }, [paymentKey, orderId, amount])
 
   if (status === 'loading') {

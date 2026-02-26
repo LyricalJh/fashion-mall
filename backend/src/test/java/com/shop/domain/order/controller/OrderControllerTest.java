@@ -51,8 +51,8 @@ class OrderControllerTest {
     void setUp() throws Exception {
         // 카테고리 & 상품 (stock=10)
         jdbcTemplate.update(
-                "INSERT INTO categories (name, description, display_order, created_at, updated_at) " +
-                "VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+                "INSERT INTO categories (name, description, display_order, depth, created_at, updated_at) " +
+                "VALUES (?, ?, ?, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
                 "여성", "여성 카테고리", 1
         );
         categoryId = jdbcTemplate.queryForObject(
@@ -60,9 +60,9 @@ class OrderControllerTest {
         );
 
         jdbcTemplate.update(
-                "INSERT INTO products (name, description, price, stock, category_id, deleted, created_at, updated_at) " +
-                "VALUES (?, ?, ?, ?, ?, false, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-                "주문용 상품", "주문 테스트 상품", 30000, 10, categoryId
+                "INSERT INTO products (name, description, price, stock, category_id, product_code, status, created_at, updated_at) " +
+                "VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+                "주문용 상품", "주문 테스트 상품", 30000, 10, categoryId, "TST-ORD-001"
         );
         productId = jdbcTemplate.queryForObject(
                 "SELECT id FROM products WHERE name = ?", Long.class, "주문용 상품"

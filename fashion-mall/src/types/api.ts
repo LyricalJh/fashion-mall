@@ -27,6 +27,8 @@ export interface ProductDetail {
   images: string[]
   productCode?: string
   status?: string
+  shippingFee?: number
+  shippingInfo?: string
 }
 
 export interface ProductPage {
@@ -131,4 +133,73 @@ export interface CreateOrderRequest {
   receiverName: string
   receiverPhone: string
   shippingMemo?: string
+}
+
+// ─── Coupon ────────────────────────────────────────────────────────────────
+
+export type CouponStatus = 'AVAILABLE' | 'USED' | 'EXPIRED'
+export type DiscountType = 'PERCENTAGE' | 'FIXED'
+
+export interface Coupon {
+  id: number
+  couponName: string
+  discountType: DiscountType
+  discountValue: number
+  minOrderAmount: number
+  maxDiscountAmount?: number
+  expiryDate: string
+  status: CouponStatus
+  description?: string
+  usedAt?: string
+  createdAt: string
+}
+
+// ─── Inquiry Pagination ──────────────────────────────────────────────────────
+
+export interface InquiryPage {
+  content: Inquiry[]
+  totalElements: number
+  totalPages: number
+  pageNumber: number
+  pageSize: number
+}
+
+// ─── Inquiry ───────────────────────────────────────────────────────────────
+
+export type InquiryStatus = 'PENDING' | 'ANSWERED' | 'CLOSED'
+export type InquiryCategory = 'PRODUCT' | 'DELIVERY' | 'EXCHANGE_RETURN' | 'PAYMENT' | 'OTHER'
+
+export interface Inquiry {
+  id: number
+  title: string
+  content: string
+  category: InquiryCategory
+  orderId?: number
+  orderProductName?: string
+  status: InquiryStatus
+  createdAt: string
+  answer?: string
+  answeredAt?: string
+}
+
+// ─── Address ───────────────────────────────────────────────────────────────
+
+export interface AddressResponse {
+  id: number
+  receiverName: string
+  receiverPhone: string
+  zipCode: string
+  address: string
+  addressDetail: string
+  isDefault: boolean
+  createdAt?: string
+}
+
+export interface CreateAddressRequest {
+  receiverName: string
+  receiverPhone: string
+  zipCode: string
+  address: string
+  addressDetail?: string
+  isDefault?: boolean
 }

@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { loadTossPayments } from '@tosspayments/tosspayments-sdk'
 import Container from '../components/ui/Container'
 import { useStore } from '../store/useStore'
 import { useAuthStore } from '../store/authStore'
 import { useCart } from '../hooks/useCart'
+import { useAddresses } from '../hooks/useAddresses'
 import { apiPost } from '../lib/apiClient'
 import type { CartItem } from '../types/cart'
 import type { CartItemResponse, CreateOrderRequest, OrderResponse } from '../types/api'
@@ -154,6 +155,8 @@ export default function CheckoutPage() {
   const { cartItems, clearCart } = useStore()
   const { cart, mutate: mutateCart } = useCart()
 
+  const { addresses } = useAddresses()
+
   const locState = location.state as { directItem?: CartItem; selectedProductIds?: number[]; selectedLocalIds?: string[] } | null
   const directItem = locState?.directItem
 
@@ -182,9 +185,28 @@ export default function CheckoutPage() {
     addressDetail: user?.addressDetail ?? '',
     deliveryMemo: DELIVERY_MEMOS[0],
   })
+  const [selectedAddressId, setSelectedAddressId] = useState<string>('')
   const [customMemo, setCustomMemo] = useState('')
   const [errors, setErrors] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
+
+  // Auto-select default address when addresses load
+  useEffect(() => {
+    if (!isLoggedIn || addresses.length === 0) return
+    const defaultAddr = addresses.find((a) => a.isDefault) ?? addresses[0]
+    if (defaultAddr && !form.name && !form.address) {
+      setSelectedAddressId(String(defaultAddr.id))
+      setForm((prev) => ({
+        ...prev,
+        name: defaultAddr.receiverName,
+        phone: defaultAddr.receiverPhone,
+        postcode: defaultAddr.zipCode,
+        address: defaultAddr.address,
+        addressDetail: defaultAddr.addressDetail || '',
+      }))
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [addresses, isLoggedIn])
 
   const totalPrice = orderItems.reduce((s, it) => s + it.price * it.quantity, 0)
   const shippingFee = totalPrice >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE
@@ -284,6 +306,40 @@ export default function CheckoutPage() {
             <section>
               <SectionHeading>배송지 정보</SectionHeading>
               <div className="flex flex-col gap-4 rounded-lg border border-gray-200 p-5">
+                {/* 내 배송지에서 선택 */}
+                {isLoggedIn && addresses.length > 0 && (
+                  <label className="flex flex-col gap-1.5">
+                    <span className="text-xs font-medium text-gray-600">내 배송지에서 선택</span>
+                    <select
+                      value={selectedAddressId}
+                      onChange={(e) => {
+                        const addrId = e.target.value
+                        setSelectedAddressId(addrId)
+                        if (addrId) {
+                          const addr = addresses.find((a) => a.id === Number(addrId))
+                          if (addr) {
+                            setForm((prev) => ({
+                              ...prev,
+                              name: addr.receiverName,
+                              phone: addr.receiverPhone,
+                              postcode: addr.zipCode,
+                              address: addr.address,
+                              addressDetail: addr.addressDetail || '',
+                            }))
+                          }
+                        }
+                      }}
+                      className="rounded border border-gray-300 px-3 py-2.5 text-sm text-gray-700 focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
+                    >
+                      <option value="">직접 입력</option>
+                      {addresses.map((addr) => (
+                        <option key={addr.id} value={addr.id}>
+                          {addr.receiverName} - {addr.address}{addr.isDefault ? ' (기본)' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <InputField label="수령인" required placeholder="이름" value={form.name} onChange={field('name')} />
                   <InputField label="연락처" required placeholder="010-0000-0000" type="tel" value={form.phone} onChange={field('phone')} />

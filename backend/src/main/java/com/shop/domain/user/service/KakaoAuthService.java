@@ -1,5 +1,7 @@
 package com.shop.domain.user.service;
 
+import com.shop.domain.address.entity.Address;
+import com.shop.domain.address.repository.AddressRepository;
 import com.shop.domain.user.dto.AuthResponse;
 import com.shop.domain.user.dto.KakaoShippingAddressResponse;
 import com.shop.domain.user.dto.KakaoTokenResponse;
@@ -36,6 +38,7 @@ public class KakaoAuthService {
     private final KakaoProperties kakaoProperties;
     private final RestTemplate restTemplate;
     private final UserRepository userRepository;
+    private final AddressRepository addressRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
 
@@ -133,6 +136,38 @@ public class KakaoAuthService {
         }
 
         userRepository.save(user);
+
+        // Save shipping addresses to Address table (skip if user already has addresses)
+        if (!addressRepository.existsByUserId(user.getId())) {
+            try {
+                KakaoShippingAddressResponse shippingResponse = getShippingAddresses(tokenResponse.getAccessToken());
+                if (shippingResponse != null && shippingResponse.getShippingAddresses() != null
+                        && !shippingResponse.getShippingAddresses().isEmpty()) {
+                    KakaoShippingAddressResponse.ShippingAddress defaultAddr =
+                            shippingResponse.getShippingAddresses().stream()
+                                    .filter(addr -> Boolean.TRUE.equals(addr.getIsDefault()))
+                                    .findFirst()
+                                    .orElse(shippingResponse.getShippingAddresses().get(0));
+
+                    Address address = Address.builder()
+                            .user(user)
+                            .receiverName(defaultAddr.getReceiverName() != null
+                                    ? defaultAddr.getReceiverName() : user.getName())
+                            .receiverPhone(defaultAddr.getReceiverPhoneNumber1() != null
+                                    ? defaultAddr.getReceiverPhoneNumber1() : "")
+                            .zipCode(defaultAddr.getZoneNumber() != null
+                                    ? defaultAddr.getZoneNumber() : "")
+                            .address(defaultAddr.getBaseAddress() != null
+                                    ? defaultAddr.getBaseAddress() : "")
+                            .addressDetail(defaultAddr.getDetailAddress())
+                            .isDefault(true)
+                            .build();
+                    addressRepository.save(address);
+                }
+            } catch (Exception e) {
+                log.warn("Failed to save Kakao shipping address to Address table: {}", e.getMessage());
+            }
+        }
         return buildAuthResponse(user);
     }
 

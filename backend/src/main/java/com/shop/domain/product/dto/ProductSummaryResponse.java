@@ -19,6 +19,7 @@ public class ProductSummaryResponse {
     private String thumbnailUrl;
     private String productCode;
     private String status;
+    private BigDecimal shippingFee;
 
     public static ProductSummaryResponse from(Product product) {
         String thumbnail = product.getThumbnailUrl();
@@ -36,6 +37,7 @@ public class ProductSummaryResponse {
                 .thumbnailUrl(thumbnail)
                 .productCode(product.getProductCode())
                 .status(product.getStatus().name())
+                .shippingFee(product.getShippingFee())
                 .build();
     }
 }

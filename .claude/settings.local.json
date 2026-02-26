@@ -7,7 +7,22 @@
       "Bash(tail:*)",
       "Bash(cd /Users/junghanso/Documents/shop/backend && ./gradlew compileJava 2>&1)",
       "Bash(npm run:*)",
-      "Bash(./gradlew test:*)"
+      "Bash(./gradlew test:*)",
+      "Bash(docker exec:*)",
+      "Bash(cd:*)",
+      "Bash(cd \"C:/projects/shopping/fashion-mall\" && docker-compose up -d --build 2>&1)",
+      "Bash(head:*)",
+      "WebFetch(domain:docs.tosspayments.com)",
+      "Bash(cd /c/projects/shopping/fashion-mall/fashion-mall && npx tsc --noEmit 2>&1)",
+      "Bash(cd /c/projects/shopping/fashion-mall/backend && ./gradlew bootRun 2>&1)",
+      "Bash(cd /c/projects/shopping/fashion-mall && docker compose up -d --build backend 2>&1)",
+      "Bash(cd /c/projects/shopping/fashion-mall/backend && ./gradlew build -x test 2>&1)",
+      "Bash(\"/c/Program Files/PostgreSQL/16/bin/psql.exe\":*)",
+      "Bash(cd /c/projects/shopping/fashion-mall/backend && SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:15432/shop ./gradlew bootRun 2>&1)",
+      "Bash(netstat:*)",
+      "Bash(cd /c/projects/shopping/fashion-mall && docker stop shop-backend shop-postgres 2>&1 && docker rm shop-backend shop-postgres 2>&1)",
+      "Bash(cd /c/projects/shopping/fashion-mall && docker-compose up -d --build 2>&1)",
+      "Bash(cd /c/projects/shopping/fashion-mall && docker-compose down 2>&1 && docker-compose build --no-cache backend 2>&1 && docker-compose up -d 2>&1)"
     ]
   }
 }

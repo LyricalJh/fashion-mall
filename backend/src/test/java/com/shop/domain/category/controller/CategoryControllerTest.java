@@ -30,13 +30,13 @@ class CategoryControllerTest {
     @BeforeEach
     void setUp() {
         jdbcTemplate.update(
-                "INSERT INTO categories (name, description, display_order, created_at, updated_at) " +
-                "VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+                "INSERT INTO categories (name, description, display_order, depth, created_at, updated_at) " +
+                "VALUES (?, ?, ?, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
                 "여성", "여성 카테고리", 1
         );
         jdbcTemplate.update(
-                "INSERT INTO categories (name, description, display_order, created_at, updated_at) " +
-                "VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+                "INSERT INTO categories (name, description, display_order, depth, created_at, updated_at) " +
+                "VALUES (?, ?, ?, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
                 "남성", "남성 카테고리", 2
         );
         categoryId = jdbcTemplate.queryForObject(

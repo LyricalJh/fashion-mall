@@ -1,55 +1,63 @@
-import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { loadAddresses, type Address } from '../../store/addressStore'
+import { useAddresses } from '../../hooks/useAddresses'
+import type { AddressResponse } from '../../types/api'
 
 // ─── AddressCard ──────────────────────────────────────────────────────────────
 
-function AddressCard({ address, onEdit }: { address: Address; onEdit: () => void }) {
-  const memoLine = [
-    address.normalDeliveryMemo && `일반: ${address.normalDeliveryMemo}`,
-    address.dawnDeliveryMemo   && `새벽: ${address.dawnDeliveryMemo}`,
-  ]
-    .filter(Boolean)
-    .join(' / ')
-
+function AddressCard({
+  address,
+  onEdit,
+  onDelete,
+  onSetDefault,
+}: {
+  address: AddressResponse
+  onEdit: () => void
+  onDelete: () => void
+  onSetDefault: () => void
+}) {
   return (
     <div className="px-5 py-5">
-      {/* Top row: label + pills + edit button */}
+      {/* Top row: name + pills + actions */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-base font-semibold text-gray-900">{address.label}</span>
+          <span className="text-base font-semibold text-gray-900">{address.receiverName}</span>
           {address.isDefault && (
             <span className="rounded-full border border-gray-300 px-2 py-0.5 text-[11px] text-gray-500">
               기본배송지
             </span>
           )}
-          {address.canRocketFresh && (
-            <span className="rounded-full border border-green-500 px-2 py-0.5 text-[11px] text-green-600">
-              로켓프레시 가능
-            </span>
-          )}
-          {address.canRocketWow && (
-            <span className="rounded-full border border-blue-500 px-2 py-0.5 text-[11px] text-blue-600">
-              로켓와우 가능
-            </span>
-          )}
         </div>
-        <button
-          onClick={onEdit}
-          className="shrink-0 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-blue-600 transition-colors hover:bg-gray-50"
-        >
-          수정
-        </button>
+        <div className="flex shrink-0 gap-2">
+          {!address.isDefault && (
+            <button
+              onClick={onSetDefault}
+              className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-600 transition-colors hover:bg-gray-50"
+            >
+              기본 설정
+            </button>
+          )}
+          <button
+            onClick={onEdit}
+            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-blue-600 transition-colors hover:bg-gray-50"
+          >
+            수정
+          </button>
+          <button
+            onClick={onDelete}
+            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-red-500 transition-colors hover:bg-red-50"
+          >
+            삭제
+          </button>
+        </div>
       </div>
 
       {/* Address */}
       <div className="mt-2 space-y-0.5 text-sm text-gray-700">
         <p>
-          {address.address1}
-          {address.address2 && `, ${address.address2}`}
+          {address.address}
+          {address.addressDetail && `, ${address.addressDetail}`}
         </p>
-        <p>{address.phone}</p>
-        {memoLine && <p className="text-gray-500">{memoLine}</p>}
+        <p>{address.receiverPhone}</p>
       </div>
     </div>
   )
@@ -59,17 +67,41 @@ function AddressCard({ address, onEdit }: { address: Address; onEdit: () => void
 
 export default function AddressPage() {
   const navigate = useNavigate()
-  // 페이지 마운트 시 localStorage 재로드 (폼에서 돌아올 때 최신 반영)
-  const [addresses] = useState<Address[]>(() =>
-    [...loadAddresses()].sort((a, b) => Number(b.isDefault) - Number(a.isDefault))
-  )
+  const { addresses, isLoading, removeAddress, setDefault } = useAddresses()
+
+  const sorted = [...addresses].sort((a, b) => Number(b.isDefault) - Number(a.isDefault))
+
+  async function handleDelete(id: number) {
+    if (!confirm('이 배송지를 삭제하시겠습니까?')) return
+    try {
+      await removeAddress(id)
+    } catch {
+      alert('배송지 삭제에 실패했습니다.')
+    }
+  }
+
+  async function handleSetDefault(id: number) {
+    try {
+      await setDefault(id)
+    } catch {
+      alert('기본배송지 설정에 실패했습니다.')
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="py-20 text-center">
+        <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-gray-900" />
+      </div>
+    )
+  }
 
   return (
     <div>
       <h2 className="text-2xl font-bold text-gray-900">배송지 관리</h2>
 
       <div className="mt-5">
-        {addresses.length === 0 ? (
+        {sorted.length === 0 ? (
           /* Empty state */
           <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 py-20 text-center">
             <svg
@@ -88,11 +120,13 @@ export default function AddressPage() {
         ) : (
           /* Address list */
           <div className="divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-200 bg-white">
-            {addresses.map((addr) => (
+            {sorted.map((addr) => (
               <AddressCard
-                key={addr.addressId}
+                key={addr.id}
                 address={addr}
-                onEdit={() => navigate(`/mypage/address/${addr.addressId}/edit`)}
+                onEdit={() => navigate(`/mypage/address/${addr.id}/edit`)}
+                onDelete={() => handleDelete(addr.id)}
+                onSetDefault={() => handleSetDefault(addr.id)}
               />
             ))}
           </div>

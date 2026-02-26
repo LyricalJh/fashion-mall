@@ -88,6 +88,11 @@ public class PaymentService {
         Payment payment = paymentRepository.findByOrderOrderNumber(request.getOrderId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
 
+        // 이미 완료된 결제면 바로 성공 반환 (멱등성)
+        if (payment.getPaymentStatus() == PaymentStatus.COMPLETED) {
+            return PaymentResponse.from(payment);
+        }
+
         // Compare integer values to avoid BigDecimal scale mismatch (e.g., 50000.00 vs 50000)
         if (payment.getPaymentAmount().intValue() != request.getAmount()) {
             throw new BusinessException(ErrorCode.PAYMENT_AMOUNT_MISMATCH);

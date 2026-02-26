@@ -10,8 +10,24 @@ import { useStore } from '../store/useStore'
 import { useAuthStore } from '../store/authStore'
 import { useProduct } from '../hooks/useProduct'
 import { useCart } from '../hooks/useCart'
-import type { ProductDetail } from '../types/api'
+import { useAvailableCoupons } from '../hooks/useCoupons'
+import type { ProductDetail, Coupon } from '../types/api'
 import type { Product } from '../mock/products'
+
+// ─── Coupon helpers ──────────────────────────────────────────────────────────
+
+function calculateDiscount(coupon: Coupon, price: number): number {
+  if (price < coupon.minOrderAmount) return 0
+  if (coupon.discountType === 'PERCENTAGE') {
+    const discount = Math.floor(price * coupon.discountValue / 100)
+    return coupon.maxDiscountAmount ? Math.min(discount, coupon.maxDiscountAmount) : discount
+  }
+  return coupon.discountValue
+}
+
+function fmtKRW(n: number): string {
+  return n.toLocaleString('ko-KR')
+}
 
 // ─── Adapter ──────────────────────────────────────────────────────────────────
 
@@ -43,8 +59,10 @@ export default function ProductDetailPage() {
   const { addToCart: addToCartStore } = useStore()
   const { addToCart: addToCartApi } = useCart()
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn)
+  const { coupons: availableCoupons } = useAvailableCoupons()
   const navigate = useNavigate()
   const [toast, setToast] = useState<ToastState | null>(null)
+  const [selectedCouponId, setSelectedCouponId] = useState<number | null>(null)
 
   const product = apiProduct ? toMockProduct(apiProduct) : null
 
@@ -215,10 +233,67 @@ export default function ProductDetailPage() {
 
           {/* Shipping info */}
           <div className="rounded-lg bg-gray-50 px-4 py-3 text-xs text-gray-500">
-            <p>• 무료배송 (3만원 이상 구매 시)</p>
-            <p className="mt-1">• 영업일 기준 2~3일 내 출고</p>
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-gray-700">배송비</span>
+              {apiProduct.shippingFee != null && apiProduct.shippingFee === 0 ? (
+                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-700">무료배송</span>
+              ) : apiProduct.shippingFee != null ? (
+                <span className="text-gray-900">{fmtKRW(apiProduct.shippingFee)}원</span>
+              ) : (
+                <span>무료배송 (3만원 이상 구매 시)</span>
+              )}
+            </div>
+            <p className="mt-1.5">
+              {apiProduct.shippingInfo || '일반택배 / 영업일 기준 2~3일 내 출고'}
+            </p>
             <p className="mt-1">• 교환 및 반품: 수령 후 7일 이내</p>
           </div>
+
+          {/* Coupon discount */}
+          {isLoggedIn && availableCoupons.length > 0 && (
+            <div className="rounded-lg border border-rose-100 bg-rose-50/50 px-4 py-3">
+              <div className="flex items-center gap-2">
+                <svg className="h-4 w-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path d="M20 12V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v6m0 0v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6" />
+                  <line x1="12" y1="7" x2="12" y2="17" strokeDasharray="2 2" />
+                </svg>
+                <span className="text-xs font-semibold text-gray-700">쿠폰 할인</span>
+              </div>
+              <select
+                value={selectedCouponId ?? ''}
+                onChange={(e) => setSelectedCouponId(e.target.value ? Number(e.target.value) : null)}
+                className="mt-2 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:border-rose-400 focus:outline-none focus:ring-1 focus:ring-rose-100"
+              >
+                <option value="">쿠폰을 선택하세요</option>
+                {availableCoupons.map((c) => {
+                  const disc = calculateDiscount(c, product.price)
+                  const applicable = disc > 0
+                  return (
+                    <option key={c.id} value={c.id} disabled={!applicable}>
+                      {c.couponName} ({c.discountType === 'PERCENTAGE' ? `${c.discountValue}%` : `${fmtKRW(c.discountValue)}원`} 할인)
+                      {!applicable ? ` - ${fmtKRW(c.minOrderAmount)}원 이상 구매 시` : ''}
+                    </option>
+                  )
+                })}
+              </select>
+              {selectedCouponId && (() => {
+                const coupon = availableCoupons.find((c) => c.id === selectedCouponId)
+                if (!coupon) return null
+                const discount = calculateDiscount(coupon, product.price)
+                if (discount <= 0) return null
+                const discountedPrice = product.price - discount
+                return (
+                  <div className="mt-2 flex items-center justify-between">
+                    <span className="text-xs text-gray-500">쿠폰 적용 시</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-400 line-through">{fmtKRW(product.price)}원</span>
+                      <span className="text-sm font-bold text-rose-600">{fmtKRW(discountedPrice)}원</span>
+                    </div>
+                  </div>
+                )
+              })()}
+            </div>
+          )}
         </div>
       </div>
     </Container>

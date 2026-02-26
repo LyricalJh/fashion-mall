@@ -128,6 +128,16 @@ export async function apiPut<T>(path: string, body: unknown): Promise<T> {
   return parseResponse<T>(res, doFetch)
 }
 
+export async function apiPatch<T>(path: string, body?: unknown): Promise<T> {
+  const doFetch = () => fetch(`${BASE_URL}${path}`, {
+    method: 'PATCH',
+    headers: buildHeaders(),
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  })
+  const res = await doFetch()
+  return parseResponse<T>(res, doFetch)
+}
+
 export async function apiDelete(path: string): Promise<void> {
   const doFetch = () => fetch(`${BASE_URL}${path}`, {
     method: 'DELETE',
