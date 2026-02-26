@@ -52,12 +52,14 @@ public class Address extends BaseEntity {
     }
 
     public void update(String receiverName, String receiverPhone,
-                       String zipCode, String address, String addressDetail) {
+                       String zipCode, String address, String addressDetail,
+                       boolean isDefault) {
         this.receiverName = receiverName;
         this.receiverPhone = receiverPhone;
         this.zipCode = zipCode;
         this.address = address;
         this.addressDetail = addressDetail;
+        this.isDefault = isDefault;
     }
 
     public void setDefault(boolean isDefault) {

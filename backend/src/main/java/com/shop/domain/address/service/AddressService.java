@@ -56,12 +56,17 @@ public class AddressService {
     public AddressResponse updateAddress(Long userId, Long addressId, UpdateAddressRequest request) {
         Address address = findUserAddress(userId, addressId);
 
+        if (request.isDefault() && !address.isDefault()) {
+            clearDefaultAddress(userId);
+        }
+
         address.update(
                 request.getReceiverName(),
                 request.getReceiverPhone(),
                 request.getZipCode(),
                 request.getAddress(),
-                request.getAddressDetail()
+                request.getAddressDetail(),
+                request.isDefault()
         );
 
         return AddressResponse.from(address);

@@ -1,5 +1,6 @@
 package com.shop.domain.address.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.shop.domain.address.entity.Address;
 import lombok.Builder;
 import lombok.Getter;
@@ -16,6 +17,7 @@ public class AddressResponse {
     private String zipCode;
     private String address;
     private String addressDetail;
+    @JsonProperty("isDefault")
     private boolean isDefault;
     private LocalDateTime createdAt;
 

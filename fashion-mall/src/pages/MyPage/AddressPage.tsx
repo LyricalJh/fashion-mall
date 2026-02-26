@@ -4,6 +4,46 @@ import type { AddressResponse } from '../../types/api'
 
 // ─── AddressCard ──────────────────────────────────────────────────────────────
 
+function DefaultAddressCard({
+  address,
+  onEdit,
+}: {
+  address: AddressResponse
+  onEdit: () => void
+}) {
+  return (
+    <div className="rounded-xl border-2 border-blue-500 bg-blue-50 px-5 py-5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-base font-semibold text-gray-900">{address.receiverName}</span>
+          <span
+            className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold"
+            style={{ backgroundColor: '#3b82f6', color: '#fff' }}
+          >
+            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+            기본배송지
+          </span>
+        </div>
+        <button
+          onClick={onEdit}
+          className="shrink-0 rounded-md border border-blue-300 px-3 py-1.5 text-sm text-blue-600 transition-colors hover:bg-blue-100"
+        >
+          수정
+        </button>
+      </div>
+      <div className="mt-2 space-y-0.5 text-sm text-gray-700">
+        <p>
+          {address.address}
+          {address.addressDetail && `, ${address.addressDetail}`}
+        </p>
+        <p>{address.receiverPhone}</p>
+      </div>
+    </div>
+  )
+}
+
 function AddressCard({
   address,
   onEdit,
@@ -17,25 +57,17 @@ function AddressCard({
 }) {
   return (
     <div className="px-5 py-5">
-      {/* Top row: name + pills + actions */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-base font-semibold text-gray-900">{address.receiverName}</span>
-          {address.isDefault && (
-            <span className="rounded-full border border-gray-300 px-2 py-0.5 text-[11px] text-gray-500">
-              기본배송지
-            </span>
-          )}
+          <button
+            onClick={onSetDefault}
+            className="rounded-full border border-dashed border-gray-300 px-2.5 py-0.5 text-xs text-gray-400 transition-colors hover:border-blue-400 hover:text-blue-500"
+          >
+            기본으로 설정
+          </button>
         </div>
         <div className="flex shrink-0 gap-2">
-          {!address.isDefault && (
-            <button
-              onClick={onSetDefault}
-              className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-600 transition-colors hover:bg-gray-50"
-            >
-              기본 설정
-            </button>
-          )}
           <button
             onClick={onEdit}
             className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-blue-600 transition-colors hover:bg-gray-50"
@@ -50,8 +82,6 @@ function AddressCard({
           </button>
         </div>
       </div>
-
-      {/* Address */}
       <div className="mt-2 space-y-0.5 text-sm text-gray-700">
         <p>
           {address.address}
@@ -69,7 +99,8 @@ export default function AddressPage() {
   const navigate = useNavigate()
   const { addresses, isLoading, removeAddress, setDefault } = useAddresses()
 
-  const sorted = [...addresses].sort((a, b) => Number(b.isDefault) - Number(a.isDefault))
+  const defaultAddr = addresses.find((a) => a.isDefault)
+  const otherAddrs = addresses.filter((a) => !a.isDefault)
 
   async function handleDelete(id: number) {
     if (!confirm('이 배송지를 삭제하시겠습니까?')) return
@@ -101,7 +132,7 @@ export default function AddressPage() {
       <h2 className="text-2xl font-bold text-gray-900">배송지 관리</h2>
 
       <div className="mt-5">
-        {sorted.length === 0 ? (
+        {addresses.length === 0 ? (
           /* Empty state */
           <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 py-20 text-center">
             <svg
@@ -118,17 +149,29 @@ export default function AddressPage() {
             <p className="mt-1 text-xs text-gray-300">자주 쓰는 배송지를 추가해 보세요.</p>
           </div>
         ) : (
-          /* Address list */
-          <div className="divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-200 bg-white">
-            {sorted.map((addr) => (
-              <AddressCard
-                key={addr.id}
-                address={addr}
-                onEdit={() => navigate(`/mypage/address/${addr.id}/edit`)}
-                onDelete={() => handleDelete(addr.id)}
-                onSetDefault={() => handleSetDefault(addr.id)}
+          <div className="space-y-3">
+            {/* Default address - standalone card */}
+            {defaultAddr && (
+              <DefaultAddressCard
+                address={defaultAddr}
+                onEdit={() => navigate(`/mypage/address/${defaultAddr.id}/edit`)}
               />
-            ))}
+            )}
+
+            {/* Other addresses */}
+            {otherAddrs.length > 0 && (
+              <div className="divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-200 bg-white">
+                {otherAddrs.map((addr) => (
+                  <AddressCard
+                    key={addr.id}
+                    address={addr}
+                    onEdit={() => navigate(`/mypage/address/${addr.id}/edit`)}
+                    onDelete={() => handleDelete(addr.id)}
+                    onSetDefault={() => handleSetDefault(addr.id)}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         )}
 
