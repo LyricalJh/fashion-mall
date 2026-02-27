@@ -20,6 +20,7 @@ import InquiryPage from '../pages/MyPage/InquiryPage'
 import AddressPage from '../pages/MyPage/AddressPage'
 import AddressFormPage from '../pages/MyPage/AddressFormPage'
 import WithdrawPage from '../pages/MyPage/WithdrawPage'
+import LikesPage from '../pages/LikesPage'
 import { useAuthStore } from '../store/authStore'
 
 /** 로그인이 필요한 라우트를 보호합니다. 미로그인 시 /login으로 리다이렉트 */
@@ -48,6 +49,7 @@ export const router = createBrowserRouter([
       { index: true, element: <HomePage /> },
       { path: 'category/:categoryId', element: <CategoryPage /> },
       { path: 'product/:id', element: <ProductDetailPage /> },
+      { path: 'likes', element: <LikesPage /> },
       { path: 'cart', element: <CartPage /> },
       { path: 'checkout', element: <CheckoutPage /> },
       { path: 'order-complete', element: <OrderCompletePage /> },

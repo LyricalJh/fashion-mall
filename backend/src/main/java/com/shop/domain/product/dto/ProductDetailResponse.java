@@ -25,8 +25,9 @@ public class ProductDetailResponse {
     private String status;
     private BigDecimal shippingFee;
     private String shippingInfo;
+    private long likeCount;
 
-    public static ProductDetailResponse from(Product product) {
+    public static ProductDetailResponse from(Product product, long likeCount) {
         List<String> imageUrls = product.getImages().stream()
                 .map(ProductImage::getUrl)
                 .collect(Collectors.toList());
@@ -44,6 +45,7 @@ public class ProductDetailResponse {
                 .status(product.getStatus().name())
                 .shippingFee(product.getShippingFee())
                 .shippingInfo(product.getShippingInfo())
+                .likeCount(likeCount)
                 .build();
     }
 }

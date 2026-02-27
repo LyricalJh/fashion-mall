@@ -131,3 +131,56 @@ INSERT INTO product_images (product_id, url, image_order)
 SELECT p.id, 'https://picsum.photos/seed/p' || p.id || '_2/600/600', 2
 FROM products p
 ON CONFLICT (product_id, image_order) DO NOTHING;
+
+-- =============================================
+-- 기획전(Curation) 샘플 데이터
+-- =============================================
+INSERT INTO curations (title, description, image_url, display_order, active, created_at, updated_at)
+VALUES
+    ('여름과 한아가 선택한', '다가올 계절을 기대하며, 베스트 상품 재입고 소식을 전해요.', 'https://picsum.photos/seed/curation1/800/800', 1, true, NOW(), NOW()),
+    ('봄 스타일링 제안', '따뜻한 봄날에 어울리는 아우터와 액세서리를 모았어요.', 'https://picsum.photos/seed/curation2/800/800', 2, true, NOW(), NOW()),
+    ('데일리 에센셜', '매일 입어도 질리지 않는 기본 아이템 컬렉션.', 'https://picsum.photos/seed/curation3/800/800', 3, true, NOW(), NOW())
+ON CONFLICT DO NOTHING;
+
+-- 기획전 1번에 상품 연결 (기존 상품 활용)
+INSERT INTO curation_products (curation_id, product_id, display_order, badge_text, original_price, created_at, updated_at)
+SELECT c.id, p.id, 1, '봄맞이', 320000, NOW(), NOW()
+FROM curations c, products p WHERE c.title = '여름과 한아가 선택한' AND p.product_code = 'PRD-OUT-004'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO curation_products (curation_id, product_id, display_order, badge_text, original_price, created_at, updated_at)
+SELECT c.id, p.id, 2, '봄맞이', 180000, NOW(), NOW()
+FROM curations c, products p WHERE c.title = '여름과 한아가 선택한' AND p.product_code = 'PRD-TOP-003'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO curation_products (curation_id, product_id, display_order, badge_text, original_price, created_at, updated_at)
+SELECT c.id, p.id, 3, NULL, NULL, NOW(), NOW()
+FROM curations c, products p WHERE c.title = '여름과 한아가 선택한' AND p.product_code = 'PRD-BTM-002'
+ON CONFLICT DO NOTHING;
+
+-- 기획전 2번에 상품 연결
+INSERT INTO curation_products (curation_id, product_id, display_order, badge_text, original_price, created_at, updated_at)
+SELECT c.id, p.id, 1, 'BEST', NULL, NOW(), NOW()
+FROM curations c, products p WHERE c.title = '봄 스타일링 제안' AND p.product_code = 'PRD-OUT-001'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO curation_products (curation_id, product_id, display_order, badge_text, original_price, created_at, updated_at)
+SELECT c.id, p.id, 2, NULL, NULL, NOW(), NOW()
+FROM curations c, products p WHERE c.title = '봄 스타일링 제안' AND p.product_code = 'PRD-ACC-001'
+ON CONFLICT DO NOTHING;
+
+-- 기획전 3번에 상품 연결
+INSERT INTO curation_products (curation_id, product_id, display_order, badge_text, original_price, created_at, updated_at)
+SELECT c.id, p.id, 1, NULL, NULL, NOW(), NOW()
+FROM curations c, products p WHERE c.title = '데일리 에센셜' AND p.product_code = 'PRD-TOP-001'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO curation_products (curation_id, product_id, display_order, badge_text, original_price, created_at, updated_at)
+SELECT c.id, p.id, 2, NULL, NULL, NOW(), NOW()
+FROM curations c, products p WHERE c.title = '데일리 에센셜' AND p.product_code = 'PRD-BTM-001'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO curation_products (curation_id, product_id, display_order, badge_text, original_price, created_at, updated_at)
+SELECT c.id, p.id, 3, NULL, NULL, NOW(), NOW()
+FROM curations c, products p WHERE c.title = '데일리 에센셜' AND p.product_code = 'PRD-SHO-001'
+ON CONFLICT DO NOTHING;

@@ -13,7 +13,9 @@ import com.shop.domain.order.entity.OrderItem;
 import com.shop.domain.order.repository.OrderRepository;
 import com.shop.domain.payment.entity.Payment;
 import com.shop.domain.payment.entity.PaymentMethod;
+import com.shop.domain.payment.entity.PaymentStatus;
 import com.shop.domain.payment.repository.PaymentRepository;
+import com.shop.domain.payment.service.PaymentService;
 import com.shop.domain.product.entity.Product;
 import com.shop.domain.product.repository.ProductRepository;
 import com.shop.domain.user.entity.User;
@@ -45,6 +47,7 @@ public class OrderService {
     private final UserRepository userRepository;
     private final CartService cartService;
     private final PaymentRepository paymentRepository;
+    private final PaymentService paymentService;
     private final ClaimRepository claimRepository;
 
     /**
@@ -174,7 +177,12 @@ public class OrderService {
         // 결제 정보 조회 및 환불 처리
         Payment payment = paymentRepository.findByOrderId(orderId).orElse(null);
         if (payment != null) {
-            payment.refund();
+            // #4: 결제 완료(COMPLETED) 상태인 경우 토스 결제 취소 API 호출
+            if (payment.getPaymentStatus() == PaymentStatus.COMPLETED && payment.getPaymentKey() != null) {
+                paymentService.cancelTossPayment(payment.getId(), "주문 취소");
+            } else {
+                payment.refund();
+            }
         }
 
         // 취소/반품 이력에 표시되도록 Claim 레코드 생성

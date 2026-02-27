@@ -269,3 +269,43 @@ export interface CreateClaimRequest {
   accountNumber?: string
   items: { orderItemId: number; quantity: number }[]
 }
+
+// ─── Like ─────────────────────────────────────────────────────────────────
+
+export interface LikeStatusResponse {
+  liked: boolean
+  likeCount: number
+}
+
+export interface LikedProductResponse {
+  productId: number
+  productName: string
+  brandName: string
+  price: number
+  originalPrice: number | null
+  discountRate: number | null
+  thumbnailUrl: string | null
+  likedAt: string
+}
+
+// ─── Curation ─────────────────────────────────────────────────────────────
+export interface CurationProductItem {
+  productId: number
+  productName: string
+  brandName: string
+  price: number
+  originalPrice: number | null
+  discountRate: number | null
+  thumbnailUrl: string | null
+  badgeText: string | null
+  shippingInfo: string | null
+  likeCount: number | null
+}
+
+export interface CurationResponse {
+  id: number
+  title: string
+  description: string
+  imageUrl: string
+  products: CurationProductItem[]
+}

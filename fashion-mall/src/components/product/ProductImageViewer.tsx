@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useCallback } from 'react'
 
 export type ProductImage = {
   id: string
@@ -8,78 +8,6 @@ export type ProductImage = {
 
 type Props = {
   images: ProductImage[]
-}
-
-function ThumbnailItem({
-  image,
-  isActive,
-  onClick,
-}: {
-  image: ProductImage
-  isActive: boolean
-  onClick: () => void
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`shrink-0 overflow-hidden rounded border-2 transition-colors focus:outline-none ${
-        isActive ? 'border-gray-900' : 'border-transparent hover:border-gray-300'
-      }`}
-    >
-      <img
-        src={image.url}
-        alt={image.alt ?? ''}
-        className="block h-20 w-14 object-cover md:h-24 md:w-16"
-        loading="lazy"
-      />
-    </button>
-  )
-}
-
-function ThumbnailList({
-  images,
-  activeIndex,
-  onSelect,
-}: {
-  images: ProductImage[]
-  activeIndex: number
-  onSelect: (i: number) => void
-}) {
-  return (
-    /* Mobile: horizontal scroll row — Desktop: vertical scrollable column */
-    <div className="flex flex-row gap-2 overflow-x-auto pb-1 md:flex-col md:overflow-x-visible md:overflow-y-auto md:pb-0">
-      {images.map((img, i) => (
-        <ThumbnailItem
-          key={img.id}
-          image={img}
-          isActive={i === activeIndex}
-          onClick={() => onSelect(i)}
-        />
-      ))}
-    </div>
-  )
-}
-
-function MainImage({ image, onClick }: { image: ProductImage; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className="group relative block h-full w-full cursor-zoom-in overflow-hidden rounded-lg bg-gray-100 focus:outline-none"
-      aria-label="이미지 확대 보기"
-    >
-      <img
-        src={image.url}
-        alt={image.alt ?? ''}
-        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-      />
-      {/* Zoom hint icon */}
-      <span className="absolute bottom-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/80 text-gray-600 opacity-0 transition-opacity group-hover:opacity-100">
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 105 11a6 6 0 0012 0zM11 8v6M8 11h6" />
-        </svg>
-      </span>
-    </button>
-  )
 }
 
 function ImageZoomModal({ image, onClose }: { image: ProductImage; onClose: () => void }) {
@@ -118,35 +46,100 @@ function ImageZoomModal({ image, onClose }: { image: ProductImage; onClose: () =
 export default function ProductImageViewer({ images }: Props) {
   const [activeIndex, setActiveIndex] = useState(0)
   const [isZoomOpen, setIsZoomOpen] = useState(false)
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  const isScrolling = useRef(false)
+
+  const scrollTo = useCallback((index: number) => {
+    if (!scrollRef.current) return
+    isScrolling.current = true
+    setActiveIndex(index)
+    const container = scrollRef.current
+    container.scrollTo({ left: index * container.clientWidth, behavior: 'smooth' })
+    setTimeout(() => { isScrolling.current = false }, 400)
+  }, [])
+
+  const timerRef = useRef<ReturnType<typeof setTimeout>>()
+
+  const handleScroll = useCallback(() => {
+    if (isScrolling.current) return
+    clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(() => {
+      if (!scrollRef.current) return
+      const container = scrollRef.current
+      const newIndex = Math.round(container.scrollLeft / container.clientWidth)
+      if (newIndex >= 0 && newIndex < images.length) {
+        setActiveIndex(newIndex)
+      }
+    }, 80)
+  }, [images.length])
 
   if (images.length === 0) return null
 
-  const activeImage = images[activeIndex]
-
   return (
     <>
-      {/*
-        Mobile  : flex-col  — thumbnails (horizontal scroll) on top, main image below
-        Desktop : flex-row  — thumbnails (vertical list) on left, main image on right
-      */}
-      <div className="flex flex-col gap-3 md:flex-row md:gap-6">
-        {/* Thumbnail column */}
-        <div className="shrink-0 md:w-16">
-          <ThumbnailList
-            images={images}
-            activeIndex={activeIndex}
-            onSelect={setActiveIndex}
-          />
+      <div className="relative aspect-square w-full max-w-[697px]">
+        {/* Scrollable image strip */}
+        <div
+          ref={scrollRef}
+          onScroll={handleScroll}
+          className="flex h-full w-full snap-x snap-mandatory overflow-x-auto scrollbar-hide"
+        >
+          {images.map((img, i) => (
+            <div
+              key={img.id}
+              className="h-full w-full flex-none snap-start"
+            >
+              <button
+                onClick={() => setIsZoomOpen(true)}
+                className="group relative block h-full w-full cursor-zoom-in overflow-hidden bg-gray-100 focus:outline-none"
+                aria-label="이미지 확대 보기"
+              >
+                <img
+                  src={img.url}
+                  alt={img.alt ?? ''}
+                  className="h-full w-full object-cover"
+                  loading={i === 0 ? 'eager' : 'lazy'}
+                />
+              </button>
+            </div>
+          ))}
         </div>
 
-        {/* Main image — aspect-[2/3] keeps portrait ratio */}
-        <div className="aspect-[2/3] w-full md:flex-1">
-          <MainImage image={activeImage} onClick={() => setIsZoomOpen(true)} />
-        </div>
+        {/* Prev / Next arrows (desktop) */}
+        {images.length > 1 && (
+          <>
+            <button
+              onClick={() => scrollTo(Math.max(0, activeIndex - 1))}
+              className={`absolute left-3 top-1/2 z-10 hidden -translate-y-1/2 items-center justify-center rounded-full bg-white/80 p-2 shadow transition-opacity hover:bg-white md:flex ${activeIndex === 0 ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+              aria-label="이전 이미지"
+            >
+              <svg className="h-5 w-5 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <button
+              onClick={() => scrollTo(Math.min(images.length - 1, activeIndex + 1))}
+              className={`absolute right-3 top-1/2 z-10 hidden -translate-y-1/2 items-center justify-center rounded-full bg-white/80 p-2 shadow transition-opacity hover:bg-white md:flex ${activeIndex === images.length - 1 ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+              aria-label="다음 이미지"
+            >
+              <svg className="h-5 w-5 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </>
+        )}
+
+        {/* Image counter badge */}
+        {images.length > 1 && (
+          <span className="absolute bottom-3 right-3 z-10 rounded-full bg-black/60 px-2.5 py-1 text-xs font-medium text-white tabular-nums">
+            {activeIndex + 1} / {images.length}
+          </span>
+        )}
       </div>
 
       {isZoomOpen && (
-        <ImageZoomModal image={activeImage} onClose={() => setIsZoomOpen(false)} />
+        <ImageZoomModal image={images[activeIndex]} onClose={() => setIsZoomOpen(false)} />
       )}
     </>
   )

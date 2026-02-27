@@ -1,13 +1,19 @@
 # Gap Detector Memory - Shop Project
 
-## Last Analysis: 2026-02-26 (v3.1 - MyPage Focus)
+## Last Analysis: 2026-02-27 (payment-edge-cases)
+- Overall Match Rate: 100% (9/9 items PASS)
+- Idempotency-Key: confirm + cancel both have headers
+- Payment FAILED state: fail() method + dual catch blocks
+- BigDecimal compareTo: replaces intValue()
+- Order cancel -> Toss cancel: COMPLETED+paymentKey check
+- Race condition guard: CANCELLED order check before confirm
+- Guest checkout skip: sessionStorage flag pattern
+- ErrorCode 502: BAD_GATEWAY for both TOSS errors
+- RestTemplate timeout: connect 5s, read 30s
+- Double-click prevention: useRef + 3 error-path resets
+
+## Previous Analysis: 2026-02-26 (v3.1 - MyPage Focus)
 - Overall Match Rate: 87% (MyPage feature)
-- API Endpoint Match: 90% (12/12 user-facing, 4 admin-only skipped)
-- OrderStatus Mapping: 100% (6/6 enum values)
-- Type Safety: 82% (BigDecimal vs number is LOW risk)
-- Error Handling: 75% (3 pages missing error state)
-- UI/UX Consistency: 90%
-- Architecture: 85%
 
 ## Resolved Issues (v3.1)
 - #1: Orders Page vs array -- useOrders now uses OrderPage type + .content extraction

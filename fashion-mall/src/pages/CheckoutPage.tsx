@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { loadTossPayments } from '@tosspayments/tosspayments-sdk'
 import Container from '../components/ui/Container'
@@ -152,7 +152,7 @@ export default function CheckoutPage() {
   const location = useLocation()
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn)
   const user = useAuthStore((s) => s.user)
-  const { cartItems, clearCart } = useStore()
+  const { cartItems } = useStore()
   const { cart, mutate: mutateCart } = useCart()
 
   const { addresses } = useAddresses()
@@ -189,6 +189,7 @@ export default function CheckoutPage() {
   const [customMemo, setCustomMemo] = useState('')
   const [errors, setErrors] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
+  const submittingRef = useRef(false)
 
   // Auto-select default address when addresses load
   useEffect(() => {
@@ -235,12 +236,16 @@ export default function CheckoutPage() {
   }
 
   const handleSubmit = async () => {
+    // #9: useRef로 중복 클릭 방지 (state 업데이트 전 빠른 더블클릭 차단)
+    if (submittingRef.current) return
+    submittingRef.current = true
+
     const errs: string[] = []
     if (orderItems.length === 0) errs.push('주문할 상품이 없습니다.')
     if (!form.name.trim())    errs.push('수령인을 입력해 주세요.')
     if (!form.phone.trim())   errs.push('연락처를 입력해 주세요.')
     if (!form.address.trim()) errs.push('주소를 입력해 주세요.')
-    if (errs.length > 0) { setErrors(errs); return }
+    if (errs.length > 0) { setErrors(errs); submittingRef.current = false; return }
     setErrors([])
 
     setSubmitting(true)
@@ -268,16 +273,19 @@ export default function CheckoutPage() {
       } catch (err) {
         setErrors([err instanceof Error ? err.message : '주문 처리에 실패했습니다.'])
         setSubmitting(false)
+        submittingRef.current = false
       }
     } else {
-      // Guest order: no DB record, Toss PG only
+      // #6: Guest order: no DB record, Toss PG only — confirm 건너뜀
       try {
         const orderId = `ORD${Date.now()}`
+        // 게스트 주문 정보를 sessionStorage에 저장 (PaymentSuccessPage에서 confirm 건너뛰기 위해)
+        sessionStorage.setItem('guest_order', JSON.stringify({ orderId, amount: finalPrice }))
         await requestTossPayment(orderId, finalPrice, `주문 ${orderId}`, `guest_${Date.now()}`)
-        if (!directItem) clearCart()
       } catch (err) {
         setErrors([err instanceof Error ? err.message : '결제 처리에 실패했습니다.'])
         setSubmitting(false)
+        submittingRef.current = false
       }
     }
   }

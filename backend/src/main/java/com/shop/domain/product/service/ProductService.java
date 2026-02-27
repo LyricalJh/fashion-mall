@@ -1,5 +1,6 @@
 package com.shop.domain.product.service;
 
+import com.shop.domain.like.repository.ProductLikeRepository;
 import com.shop.domain.product.dto.ProductDetailResponse;
 import com.shop.domain.product.dto.ProductPageResponse;
 import com.shop.domain.product.dto.ProductSummaryResponse;
@@ -21,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ProductService {
 
     private final ProductRepository productRepository;
+    private final ProductLikeRepository productLikeRepository;
 
     public ProductPageResponse getProducts(Long categoryId, String sort, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, resolveSort(sort));
@@ -34,7 +36,10 @@ public class ProductService {
 
     public ProductDetailResponse getProduct(Long id) {
         return productRepository.findByIdAndStatus(id, ProductStatus.ACTIVE)
-                .map(ProductDetailResponse::from)
+                .map(product -> {
+                    long likeCount = productLikeRepository.countByProductId(product.getId());
+                    return ProductDetailResponse.from(product, likeCount);
+                })
                 .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
     }
 

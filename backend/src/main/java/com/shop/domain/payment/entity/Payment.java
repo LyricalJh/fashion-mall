@@ -68,6 +68,10 @@ public class Payment extends BaseEntity {
         this.paymentDate = LocalDateTime.now();
     }
 
+    public void fail() {
+        this.paymentStatus = PaymentStatus.FAILED;
+    }
+
     public void refund() {
         this.paymentStatus = PaymentStatus.REFUNDED;
         this.refundAmount = this.paymentAmount;

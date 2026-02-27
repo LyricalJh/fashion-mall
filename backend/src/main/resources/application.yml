@@ -36,5 +36,7 @@ kakao:
 
 toss:
   payments:
-    secret-key: ${TOSS_SECRET_KEY:test_sk_zXLkKEypNArWmo50nX3lmeaxYG5R}
-    client-key: ${TOSS_CLIENT_KEY:test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq}
+#    secret-key: ${TOSS_SECRET_KEY:test_sk_zXLkKEypNArWmo50nX3lmeaxYG5R}
+#    client-key: ${TOSS_CLIENT_KEY:test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq}
+    secret-key: ${TOSS_SECRET_KEY:test_sk_oEjb0gm23PNJMv2bYPp6rpGwBJn5}
+    client-key: ${TOSS_CLIENT_KEY:test_ck_5OWRapdA8dwnnq0pBaKnro1zEqZK}

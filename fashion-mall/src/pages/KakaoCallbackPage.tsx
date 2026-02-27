@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import { mergeLocalCartToServer } from '../lib/cartMerge'
@@ -11,13 +11,16 @@ export default function KakaoCallbackPage() {
   const [searchParams] = useSearchParams()
   const loginStore = useAuthStore((s) => s.login)
   const [error, setError] = useState('')
+  const processed = useRef(false)
 
   useEffect(() => {
+    if (processed.current) return
     const code = searchParams.get('code')
     if (!code) {
       setError('카카오 인가 코드가 없습니다.')
       return
     }
+    processed.current = true
 
     async function processKakaoLogin(authCode: string) {
       try {

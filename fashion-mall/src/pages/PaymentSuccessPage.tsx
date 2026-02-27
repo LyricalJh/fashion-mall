@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
 import Container from '../components/ui/Container'
-import { apiPost } from '../lib/apiClient'
+import { apiPost, ApiError } from '../lib/apiClient'
+import { useStore } from '../store/useStore'
 
 interface PaymentConfirmResponse {
   orderId: string
@@ -13,19 +14,38 @@ export default function PaymentSuccessPage() {
   const navigate = useNavigate()
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [errorMessage, setErrorMessage] = useState('')
+  const [errorCode, setErrorCode] = useState('')
+  const confirmed = useRef(false)
 
   const paymentKey = searchParams.get('paymentKey')
   const orderId = searchParams.get('orderId')
   const amount = searchParams.get('amount')
 
   useEffect(() => {
+    if (confirmed.current) return
     if (!paymentKey || !orderId || !amount) {
       setStatus('error')
       setErrorMessage('결제 정보가 올바르지 않습니다.')
       return
     }
+    confirmed.current = true
 
-    let cancelled = false
+    // #6: 게스트 결제인 경우 confirm 호출을 건너뜀 (DB에 주문이 없으므로)
+    const guestOrderData = sessionStorage.getItem('guest_order')
+    if (guestOrderData) {
+      try {
+        const guestOrder = JSON.parse(guestOrderData)
+        if (guestOrder.orderId === orderId && String(guestOrder.amount) === amount) {
+          sessionStorage.removeItem('guest_order')
+          // 게스트 장바구니 정리
+          useStore.getState().clearCart()
+          setStatus('success')
+          return
+        }
+      } catch {
+        // JSON 파싱 실패 시 정상 confirm 플로우로 진행
+      }
+    }
 
     const confirmPayment = async () => {
       try {
@@ -34,19 +54,21 @@ export default function PaymentSuccessPage() {
           orderId,
           amount: Number(amount),
         })
-        if (!cancelled) setStatus('success')
+        setStatus('success')
       } catch (err) {
-        if (!cancelled) {
-          setStatus('error')
+        setStatus('error')
+        if (err instanceof ApiError) {
+          setErrorMessage(err.message)
+          setErrorCode(err.code)
+        } else {
           setErrorMessage(err instanceof Error ? err.message : '결제 승인에 실패했습니다.')
         }
       }
     }
 
     confirmPayment()
-
-    return () => { cancelled = true }
-  }, [paymentKey, orderId, amount])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   if (status === 'loading') {
     return (
@@ -76,6 +98,9 @@ export default function PaymentSuccessPage() {
           </div>
           <h1 className="text-xl font-bold text-gray-900">결제 승인 실패</h1>
           <p className="mt-2 text-sm text-gray-500">{errorMessage}</p>
+          {errorCode === 'TOSS_PAYMENT_CONFIRM_FAILED' && (
+            <p className="mt-1 text-xs text-gray-400">문제가 지속되면 고객센터로 문의해 주세요.</p>
+          )}
           <div className="mt-8 flex flex-col gap-3">
             <button
               onClick={() => navigate('/checkout')}

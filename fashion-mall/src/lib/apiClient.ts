@@ -1,5 +1,14 @@
 import type { ApiResponse, AuthResponse } from '../types/api'
 
+export class ApiError extends Error {
+  code: string
+  constructor(code: string, message: string) {
+    super(message)
+    this.code = code
+    this.name = 'ApiError'
+  }
+}
+
 const BASE_URL = import.meta.env.VITE_API_URL as string
 
 function getAccessToken(): string | null {
@@ -92,8 +101,9 @@ async function parseResponse<T>(res: Response, retryFn?: () => Promise<Response>
   const json = (await res.json()) as ApiResponse<T>
 
   if (!res.ok || !json.success) {
+    const code = json.error?.code ?? `HTTP_${res.status}`
     const message = json.error?.message ?? `HTTP ${res.status}`
-    throw new Error(message)
+    throw new ApiError(code, message)
   }
 
   return json.data as T

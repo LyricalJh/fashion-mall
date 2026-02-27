@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -37,6 +38,7 @@ public class SecurityConfig {
             "/api/auth/**",
             "/api/products/**",
             "/api/categories/**",
+            "/api/curations/**",
             "/api/payments/**",
             "/api-docs/**",
             "/swagger-ui/**",
@@ -51,6 +53,10 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.POST, "/api/products/*/like").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/products/*/like/status").authenticated()
+                        .requestMatchers("/api/my/likes").authenticated()
+                        .requestMatchers("/api/admin/likes").hasRole("ADMIN")
                         .requestMatchers(PUBLIC_URLS).permitAll()
                         .anyRequest().authenticated()
                 )

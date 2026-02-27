@@ -1,71 +1,90 @@
-import HeroCarousel from '../components/home/HeroCarousel'
-import SectionBlock from '../components/home/SectionBlock'
-import { useCategories } from '../hooks/useCategories'
-import { useProducts } from '../hooks/useProducts'
-import type { ProductSummary } from '../types/api'
-import type { Product } from '../mock/products'
-
-function toMockProduct(p: ProductSummary): Product {
-  return {
-    id: String(p.id),
-    brand: p.categoryName,
-    name: p.name,
-    price: p.price,
-    imageUrl: p.thumbnailUrl ?? `https://picsum.photos/seed/${p.id}/400/600`,
-    colors: [],
-    sizes: [],
-  }
-}
+import { banners } from '../mock/banners'
+import CurationSection from '../components/home/CurationSection'
+import { useCurations } from '../hooks/useCurations'
 
 export default function HomePage() {
-  const { categories } = useCategories()
-  const { products, isLoading } = useProducts({ page: 0, size: 20 })
-
-  if (isLoading) {
-    return (
-      <div>
-        <HeroCarousel />
-        <div className="flex items-center justify-center py-24">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-gray-900" />
-        </div>
-      </div>
-    )
-  }
-
-  // Group products by category (up to 4 categories, 4 products each)
-  const sections = categories.slice(0, 4).map((cat) => {
-    const catProducts = products
-      .filter((p) => p.categoryId === cat.id)
-      .slice(0, 4)
-      .map(toMockProduct)
-    return {
-      key: String(cat.id),
-      title: cat.name,
-      products: catProducts,
-      href: `/category/${cat.id}`,
-    }
-  }).filter((s) => s.products.length > 0)
-
-  // Fallback: if no category-grouped products, show first 8 as single section
-  const displaySections = sections.length > 0
-    ? sections
-    : products.length > 0
-      ? [{ key: 'all', title: '추천 상품', products: products.slice(0, 8).map(toMockProduct), href: '/' }]
-      : []
+  const { curations, isLoading } = useCurations()
 
   return (
     <div>
-      <HeroCarousel />
-      <div className="divide-y divide-gray-100">
-        {displaySections.map((sec) => (
-          <SectionBlock
-            key={sec.key}
-            title={sec.title}
-            products={sec.products}
-            viewAllHref={sec.href}
-          />
+      {/* ── Mobile: 가로 스크롤 배너 strip ── */}
+      <div className="md:hidden overflow-x-auto flex gap-3 px-4 py-4 scrollbar-hide">
+        {banners.map((b) => (
+          <div
+            key={b.id}
+            className="flex-none w-[70vw] aspect-[5/6] rounded-xl overflow-hidden relative"
+          >
+            <img
+              src={b.imageUrl}
+              alt={b.title}
+              className="absolute inset-0 h-full w-full object-cover"
+              loading="lazy"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+            <div className="absolute bottom-0 left-0 right-0 p-3">
+              <h2 className="text-sm font-bold leading-snug text-white line-clamp-2">
+                {b.title}
+              </h2>
+              {b.subtitle && (
+                <p className="mt-0.5 text-[11px] text-white/70 line-clamp-1">{b.subtitle}</p>
+              )}
+            </div>
+          </div>
         ))}
       </div>
+
+      {/* ── Desktop: 2컬럼 레이아웃 ── */}
+      <div className="hidden md:flex md:flex-row items-start px-6 lg:px-8 py-6 gap-6">
+        {/* 좌측 44% — 배너 이미지 세로 나열 */}
+        <div className="w-[44%]">
+          {banners.map((b) => (
+            <div
+              key={b.id}
+              className="aspect-[5/6] overflow-hidden relative group cursor-pointer"
+            >
+              <img
+                src={b.imageUrl}
+                alt={b.title}
+                className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                loading="lazy"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-6">
+                <h2 className="text-7xl font-bold leading-tight text-white line-clamp-2">
+                  {b.title}
+                </h2>
+                {b.subtitle && (
+                  <p className="mt-2 text-2xl text-white/75 line-clamp-1">{b.subtitle}</p>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* 우측 56% — 기획전 에디토리얼 2컬럼 그리드 */}
+        <div className="w-[56%]">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-24">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-gray-900" />
+            </div>
+          ) : curations.length > 0 ? (
+            <div className="grid grid-cols-2 border-l border-t border-gray-200">
+              {curations.map((c) => (
+                <CurationSection key={c.id} curation={c} />
+              ))}
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      {/* ── Mobile: 기획전 섹션 (stacked) ── */}
+      {!isLoading && curations.length > 0 && (
+        <div className="md:hidden divide-y divide-gray-200 px-4">
+          {curations.map((c) => (
+            <CurationSection key={c.id} curation={c} />
+          ))}
+        </div>
+      )}
     </div>
   )
 }

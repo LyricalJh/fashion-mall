@@ -2,8 +2,6 @@ import { useState, useEffect, useCallback } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import Container from '../components/ui/Container'
 import ProductImageViewer, { type ProductImage } from '../components/product/ProductImageViewer'
-import Price from '../components/ui/Price'
-import Button from '../components/ui/Button'
 import ProductDetailArea from '../components/product/ProductDetailArea'
 import MobileProductActionBar from '../components/product/MobileProductActionBar'
 import { useStore } from '../store/useStore'
@@ -11,6 +9,7 @@ import { useAuthStore } from '../store/authStore'
 import { useProduct } from '../hooks/useProduct'
 import { useCart } from '../hooks/useCart'
 import { useAvailableCoupons } from '../hooks/useCoupons'
+import { useProductLike } from '../hooks/useLikes'
 import type { ProductDetail, Coupon } from '../types/api'
 import type { Product } from '../mock/products'
 
@@ -63,6 +62,7 @@ export default function ProductDetailPage() {
   const navigate = useNavigate()
   const [toast, setToast] = useState<ToastState | null>(null)
   const [selectedCouponId, setSelectedCouponId] = useState<number | null>(null)
+  const { liked, toggleLike } = useProductLike(productId ?? 0)
 
   const product = apiProduct ? toMockProduct(apiProduct) : null
 
@@ -186,114 +186,165 @@ export default function ProductDetailPage() {
         {/* Left — Image viewer */}
         <ProductImageViewer images={images} />
 
-        {/* Right — Product info */}
-        <div className="flex flex-col gap-5">
-          {/* Brand & name */}
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">
-              {product.brand}
-            </p>
-            <h1 className="mt-1.5 text-2xl font-bold text-gray-900 md:text-3xl">
-              {product.name}
-            </h1>
-          </div>
-
-          {/* Price */}
-          <div className="border-t border-gray-100 pt-4">
-            <Price price={product.price} />
-          </div>
-
-          {/* Desktop action buttons */}
-          <div className="hidden md:contents">
-            <div className="flex gap-2 pt-1">
-              <Button size="lg" variant="outline" className="flex-1" onClick={handleAddToCart}>
-                장바구니 담기
-              </Button>
-              <Button
-                size="lg"
-                className="flex-1"
-                onClick={() => navigate('/checkout', { state: { directItem: buildCartItem() } })}
-              >
-                바로 구매
-              </Button>
+        {/* Right — Product info (29CM style) */}
+        <div className="mx-auto w-[85%] flex flex-col lg:mx-0 lg:w-full">
+          {/* Brand + Name + Heart */}
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-base font-medium text-gray-900 leading-snug">
+                {product.name}
+              </h1>
             </div>
+            <button
+              onClick={toggleLike}
+              className="mt-0.5 shrink-0 p-1 transition-colors"
+              aria-label={liked ? '좋아요 취소' : '좋아요'}
+            >
+              <svg
+                className={`h-7 w-7 ${liked ? 'fill-red-500 text-red-500' : 'fill-none text-gray-400 hover:text-gray-600'}`}
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.5}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
+                />
+              </svg>
+            </button>
           </div>
 
-          {/* Product description */}
-          <div className="border-t border-gray-100 pt-4 text-sm leading-relaxed text-gray-500">
-            {apiProduct.description ? (
-              <p>{apiProduct.description}</p>
-            ) : (
-              <>
-                <p>고급 소재로 제작된 세련된 스타일의 {product.name}입니다.</p>
-                <p className="mt-1">다양한 코디에 활용 가능하며 시즌리스 아이템으로 추천드립니다.</p>
-              </>
+          {/* Star rating */}
+          <div className="mt-2 flex items-center gap-1">
+            <div className="flex items-center">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <svg key={star} className="h-3.5 w-3.5 text-gray-300" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+              ))}
+            </div>
+            <button className="border-b border-gray-400 text-xs text-gray-500 leading-none hover:text-gray-900">
+              리뷰 보기
+            </button>
+          </div>
+
+          {/* Price area */}
+          <div className="mt-4 flex items-end justify-between border-t border-gray-200 pt-4">
+            <div>
+              <span className="text-2xl font-bold text-gray-900">{fmtKRW(product.price)}<span className="text-lg">원</span></span>
+            </div>
+            {isLoggedIn && availableCoupons.length > 0 && (
+              <button className="rounded bg-gray-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-800 transition-colors">
+                쿠폰받기
+              </button>
             )}
           </div>
 
-          {/* Shipping info */}
-          <div className="rounded-lg bg-gray-50 px-4 py-3 text-xs text-gray-500">
-            <div className="flex items-center gap-2">
-              <span className="font-medium text-gray-700">배송비</span>
-              {apiProduct.shippingFee != null && apiProduct.shippingFee === 0 ? (
-                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-700">무료배송</span>
-              ) : apiProduct.shippingFee != null ? (
-                <span className="text-gray-900">{fmtKRW(apiProduct.shippingFee)}원</span>
-              ) : (
-                <span>무료배송 (3만원 이상 구매 시)</span>
-              )}
+          {/* Coupon discount (expandable) */}
+          {isLoggedIn && availableCoupons.length > 0 && (() => {
+            const bestCoupon = availableCoupons
+              .map((c) => ({ coupon: c, discount: calculateDiscount(c, product.price) }))
+              .filter((x) => x.discount > 0)
+              .sort((a, b) => b.discount - a.discount)[0]
+            if (!bestCoupon) return null
+            const bestPrice = product.price - bestCoupon.discount
+            const bestRate = Math.round((bestCoupon.discount / product.price) * 100)
+            return (
+              <details className="mt-3 group rounded-lg bg-gray-50">
+                <summary className="flex cursor-pointer items-center justify-between px-4 py-3 [&::-webkit-details-marker]:hidden">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-bold text-rose-500">{bestRate}%</span>
+                    <span className="text-lg font-bold text-gray-900">{fmtKRW(bestPrice)}<span className="text-base">원</span></span>
+                    <span className="rounded bg-rose-100 px-1.5 py-0.5 text-[10px] font-medium text-rose-600">쿠폰 적용가</span>
+                  </div>
+                  <svg className="h-5 w-5 text-gray-400 transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </summary>
+                <div className="border-t border-gray-200 px-4 py-3 space-y-2">
+                  <p className="text-xs font-semibold text-gray-500">상품 쿠폰 할인</p>
+                  {availableCoupons.map((c) => {
+                    const disc = calculateDiscount(c, product.price)
+                    const applicable = disc > 0
+                    return (
+                      <label key={c.id} className={`flex items-center justify-between py-1.5 ${!applicable ? 'opacity-40' : ''}`}>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name="coupon"
+                            value={c.id}
+                            disabled={!applicable}
+                            checked={selectedCouponId === c.id}
+                            onChange={() => setSelectedCouponId(c.id)}
+                            className="h-4 w-4 accent-gray-900"
+                          />
+                          <span className="text-sm text-gray-700">{c.couponName}</span>
+                        </div>
+                        <span className={`text-sm font-bold ${applicable ? 'text-gray-900' : 'text-gray-400'}`}>
+                          -{fmtKRW(disc)}원
+                        </span>
+                      </label>
+                    )
+                  })}
+                </div>
+              </details>
+            )
+          })()}
+
+          {/* Info table: 구매적립금 / 무이자할부 / 배송정보 / 배송비 */}
+          <div className="mt-5 space-y-3 border-t border-gray-200 pt-5 text-sm">
+            <div className="flex items-start">
+              <span className="w-[76px] shrink-0 text-gray-400">구매 적립금</span>
+              <div className="flex-1 text-gray-700">
+                <span>최대 <span className="font-semibold text-blue-600">{fmtKRW(Math.round(product.price * 0.015))}원</span></span>
+                <span className="text-gray-400"> (1.5% 적립)</span>
+              </div>
             </div>
-            <p className="mt-1.5">
-              {apiProduct.shippingInfo || '일반택배 / 영업일 기준 2~3일 내 출고'}
-            </p>
-            <p className="mt-1">• 교환 및 반품: 수령 후 7일 이내</p>
+            <div className="flex items-start">
+              <span className="w-[76px] shrink-0 text-gray-400">무이자 할부</span>
+              <div className="flex-1">
+                <p className="text-gray-700">최대 5개월 무이자 할부 시 월 {fmtKRW(Math.round(product.price / 5))}원</p>
+                <button className="text-gray-500 underline text-xs mt-0.5">카드사별 할부 혜택 안내</button>
+              </div>
+            </div>
+            <div className="flex items-start">
+              <span className="w-[76px] shrink-0 text-gray-400">배송정보</span>
+              <span className="flex-1 text-gray-700">
+                {apiProduct.shippingInfo || '3일 이내 배송 시작'}
+              </span>
+            </div>
+            <div className="flex items-start">
+              <span className="w-[76px] shrink-0 text-gray-400">배송비</span>
+              <div className="flex-1">
+                <p className="font-semibold text-gray-900">
+                  {apiProduct.shippingFee != null && apiProduct.shippingFee === 0
+                    ? '무료배송'
+                    : apiProduct.shippingFee != null
+                      ? `${fmtKRW(apiProduct.shippingFee)}원`
+                      : '3,000원'}
+                </p>
+                <p className="text-gray-500">70,000원 이상 구매시 무료배송</p>
+                <p className="text-gray-500">제주/도서산간 3,000원 추가</p>
+              </div>
+            </div>
           </div>
 
-          {/* Coupon discount */}
-          {isLoggedIn && availableCoupons.length > 0 && (
-            <div className="rounded-lg border border-rose-100 bg-rose-50/50 px-4 py-3">
-              <div className="flex items-center gap-2">
-                <svg className="h-4 w-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path d="M20 12V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v6m0 0v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6" />
-                  <line x1="12" y1="7" x2="12" y2="17" strokeDasharray="2 2" />
-                </svg>
-                <span className="text-xs font-semibold text-gray-700">쿠폰 할인</span>
-              </div>
-              <select
-                value={selectedCouponId ?? ''}
-                onChange={(e) => setSelectedCouponId(e.target.value ? Number(e.target.value) : null)}
-                className="mt-2 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:border-rose-400 focus:outline-none focus:ring-1 focus:ring-rose-100"
-              >
-                <option value="">쿠폰을 선택하세요</option>
-                {availableCoupons.map((c) => {
-                  const disc = calculateDiscount(c, product.price)
-                  const applicable = disc > 0
-                  return (
-                    <option key={c.id} value={c.id} disabled={!applicable}>
-                      {c.couponName} ({c.discountType === 'PERCENTAGE' ? `${c.discountValue}%` : `${fmtKRW(c.discountValue)}원`} 할인)
-                      {!applicable ? ` - ${fmtKRW(c.minOrderAmount)}원 이상 구매 시` : ''}
-                    </option>
-                  )
-                })}
-              </select>
-              {selectedCouponId && (() => {
-                const coupon = availableCoupons.find((c) => c.id === selectedCouponId)
-                if (!coupon) return null
-                const discount = calculateDiscount(coupon, product.price)
-                if (discount <= 0) return null
-                const discountedPrice = product.price - discount
-                return (
-                  <div className="mt-2 flex items-center justify-between">
-                    <span className="text-xs text-gray-500">쿠폰 적용 시</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-400 line-through">{fmtKRW(product.price)}원</span>
-                      <span className="text-sm font-bold text-rose-600">{fmtKRW(discountedPrice)}원</span>
-                    </div>
-                  </div>
-                )
-              })()}
-            </div>
-          )}
+          {/* Desktop action buttons (29CM style) */}
+          <div className="mt-6 hidden gap-3 md:flex">
+            <button
+              onClick={handleAddToCart}
+              className="h-12 flex-1 rounded border border-gray-900 text-base font-bold text-gray-900 transition-colors hover:bg-gray-50"
+            >
+              장바구니 담기
+            </button>
+            <button
+              onClick={() => navigate('/checkout', { state: { directItem: buildCartItem() } })}
+              className="h-12 flex-1 rounded bg-gray-900 text-base font-bold text-white transition-colors hover:bg-gray-800"
+            >
+              바로 구매하기
+            </button>
+          </div>
         </div>
       </div>
     </Container>
